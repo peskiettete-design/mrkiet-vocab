@@ -59,11 +59,20 @@
             <div class="flex items-center gap-2">
                 <div class="flex items-center bg-slate-100 border border-slate-200 rounded-xl px-2 py-1 gap-1">
                     <i data-lucide="user" class="w-4 h-4 text-indigo-600"></i>
-                    <select id="student-selector" onchange="switchStudent(this.value)" class="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer">
+                    <select id="student-selector" onchange="switchStudent(this.value)" class="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer max-w-[130px] truncate">
                         <!-- Rendered dynamically -->
                     </select>
+                    <!-- Nút Thêm Học Viên -->
                     <button onclick="openAddStudentModal()" class="p-1 hover:bg-slate-200 text-indigo-600 rounded-lg" title="Thêm học viên mới">
                         <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    </button>
+                    <!-- Nút Sửa Tên Học Viên -->
+                    <button onclick="renameCurrentStudent()" class="p-1 hover:bg-slate-200 text-amber-600 rounded-lg" title="Sửa tên học viên hiện tại">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                    </button>
+                    <!-- Nút Xóa Học Viên -->
+                    <button onclick="deleteCurrentStudent()" class="p-1 hover:bg-slate-200 text-rose-600 rounded-lg" title="Xóa học viên hiện tại">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </div>
 
@@ -458,6 +467,48 @@
             switchStudent(name);
         }
 
+        // --- CÁC TÍNH NĂNG MỚI: SỬA VÀ XÓA HỌC VIÊN ---
+        function renameCurrentStudent() {
+            const newName = prompt("Nhập tên mới cho học viên / bộ từ vựng:", currentStudent);
+            if (!newName || !newName.trim() || newName.trim() === currentStudent) return;
+
+            const trimmedName = newName.trim();
+            if (studentsData.students[trimmedName]) {
+                alert("Tên học viên / bộ từ vựng này đã tồn tại!");
+                return;
+            }
+
+            // Chuyển dữ liệu sang tên mới
+            studentsData.students[trimmedName] = studentsData.students[currentStudent];
+            delete studentsData.students[currentStudent];
+            currentStudent = trimmedName;
+
+            saveData();
+            renderStudentSelector();
+            renderFlashcard();
+            lucide.createIcons();
+        }
+
+        function deleteCurrentStudent() {
+            const studentKeys = Object.keys(studentsData.students);
+            if (studentKeys.length <= 1) {
+                alert("Không thể xóa học viên duy nhất! Hãy tạo một học viên mới trước.");
+                return;
+            }
+
+            if (confirm(`Bạn có chắc chắn muốn xóa học viên "${currentStudent}" và toàn bộ bộ từ vựng liên quan?`)) {
+                delete studentsData.students[currentStudent];
+                const remainingStudents = Object.keys(studentsData.students);
+                currentStudent = remainingStudents[0];
+                cardsList = studentsData.students[currentStudent] || [];
+
+                saveData();
+                renderStudentSelector();
+                renderFlashcard();
+                lucide.createIcons();
+            }
+        }
+
         function updateStats() {
             const total = cardsList.length;
             const learned = cardsList.filter(c => c.learned).length;
@@ -765,7 +816,6 @@
             document.getElementById("quiz-progress").textContent = `Câu ${quizCurrentIdx + 1} / ${quizQuestions.length}`;
             const targetCard = quizQuestions[quizCurrentIdx];
 
-            // Đục lỗ từ vựng trong ví dụ
             let sentence = targetCard.example || targetCard.front;
             if (targetCard.example) {
                 const reg = new RegExp(targetCard.front, "gi");
@@ -779,7 +829,6 @@
                 <h3 class="text-lg font-bold text-slate-800 bg-slate-50 p-4 rounded-xl border border-slate-200">${sentence}</h3>
                 <p class="text-xs text-slate-400 mt-2 italic">Gợi ý nghĩa: ${targetCard.back}</p>`;
 
-            // Tạo 4 đáp án
             let options = [targetCard.front];
             let otherWords = cardsList.filter(c => c.front !== targetCard.front).map(c => c.front);
             otherWords.sort(() => Math.random() - 0.5);
@@ -892,15 +941,12 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
-                        <!-- Nút Chỉnh sửa từ & câu hỏi trắc nghiệm -->
                         <button onclick="editCard(${index})" class="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg" title="Sửa từ & câu hỏi">
                             <i data-lucide="edit-3" class="w-4 h-4"></i>
                         </button>
-                        <!-- Nút Quản lý ảnh -->
                         <button onclick="openImagePickerModal(${index})" class="p-1.5 text-amber-600 hover:bg-amber-100 rounded-lg" title="Đổi / Xóa ảnh">
                             <i data-lucide="image" class="w-4 h-4"></i>
                         </button>
-                        <!-- Nút Xóa từ -->
                         <button onclick="deleteCard(${index})" class="p-1.5 text-rose-600 hover:bg-rose-100 rounded-lg" title="Xóa từ">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
@@ -910,7 +956,6 @@
             lucide.createIcons();
         }
 
-        // TÍNH NĂNG SỬA TỪ VỰNG & CÂU HỎI TRẮC NGHIỆM
         function editCard(index) {
             const card = cardsList[index];
             document.getElementById("edit-index").value = index;
@@ -1055,7 +1100,6 @@
             renderManageList();
         }
 
-        // TÍNH NĂNG XÓA ẢNH
         function removeCurrentImage() {
             if (currentTargetImgIndex >= 0 && currentTargetImgIndex < cardsList.length) {
                 cardsList[currentTargetImgIndex].image = "";
