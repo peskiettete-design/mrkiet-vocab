@@ -1189,6 +1189,42 @@
                 closeImagePickerModal();
             }
         }
+        <!DOCTYPE html>
+<html lang="vi">
+<head>
+    <!-- Các thẻ head của bạn -->
+</head>
+<body>
+
+    <!-- Nội dung HTML trang web -->
+    <button onclick="shareLink()">Share</button>
+
+    <!-- ĐOẠN MÃ JAVASCRIPT -->
+    <script>
+        // 1. CHÈN ĐOẠN KHÓA CHỈNH SỬA VÀO ĐÂY
+        const urlParams = new URLSearchParams(window.location.search);
+        const isViewOnly = urlParams.get('mode') === 'view';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (isViewOnly) {
+                // Thay thế '.btn-edit, .btn-delete...' bằng class/id thực tế trong HTML của bạn
+                const editElements = document.querySelectorAll('.btn-edit, .btn-delete, .btn-add, #add-vocab-form');
+                editElements.forEach(el => el.style.display = 'none');
+
+                const inputs = document.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => input.disabled = true);
+            }
+        });
+
+        // 2. CHÈN HOẶC CẬP NHẬT HÀM SHARELINK VÀO ĐÂY
+        function shareLink() {
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('mode', 'view');
+
+            navigator.clipboard.writeText(currentUrl.toString()).then(() => {
+                alert('Đã copy link chia sẻ (Chế độ chỉ xem)!');
+            });
+        }
     </script>
 </body>
 </html>
