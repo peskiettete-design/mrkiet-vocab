@@ -309,6 +309,7 @@
         let fcIndex = 0;
         let fcIsFlipped = false;
         let filterUnlearnedOnly = false;
+        let editingIdx = -1; // Biến lưu trạng thái từ đang được chỉnh sửa
 
         // Global App Initializer
         function initApp() {
@@ -379,7 +380,6 @@
             if (fcIndex < 0) fcIndex = 0;
             const card = active[fcIndex];
 
-            // Rebuild container DOM structure if previously emptied
             container.innerHTML = `
                 <div id="flashcard" class="relative w-full h-full duration-500 transform-style-3d transition-transform shadow-xl rounded-2xl bg-white border border-slate-200">
                     <div class="absolute inset-0 w-full h-full backface-hidden rounded-2xl p-6 flex flex-col justify-between bg-white">
@@ -726,12 +726,14 @@
             renderFlashcard();
         }
 
-        // --- MANAGE MODAL ---
+        // --- MANAGE MODAL & EDIT LOGIC ---
         function openManageModal() {
+            editingIdx = -1;
             renderManageList();
             document.getElementById("modal-manage").classList.remove("hidden");
         }
         function closeManageModal() {
+            editingIdx = -1;
             document.getElementById("modal-manage").classList.add("hidden");
         }
 
@@ -764,20 +766,76 @@
             list.innerHTML = "";
             cardsList.forEach((c, idx) => {
                 const item = document.createElement("div");
-                item.className = "flex justify-between items-center p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs";
-                item.innerHTML = `
-                    <div>
-                        <strong class="text-slate-800">${c.front}</strong> <span class="text-slate-400">${c.sub || ''}</span>
-                        <p class="text-indigo-600 font-medium">${c.back}</p>
-                    </div>
-                    <button onclick="deleteCard(${idx})" class="text-rose-600 hover:text-rose-800 font-bold px-2 py-1 hover:bg-rose-50 rounded transition-colors">Xóa</button>
-                `;
+                
+                // Nếu đang chỉnh sửa từ ở vị trí idx
+                if (editingIdx === idx) {
+                    item.className = "p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-xs space-y-2";
+                    item.innerHTML = `
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="edit-front-${idx}" value="${c.front}" class="p-2 border border-slate-300 rounded bg-white font-bold text-slate-800">
+                            <input type="text" id="edit-back-${idx}" value="${c.back}" class="p-2 border border-slate-300 rounded bg-white text-indigo-600 font-medium">
+                            <input type="text" id="edit-sub-${idx}" value="${c.sub || ''}" placeholder="Phiên âm" class="p-2 border border-slate-300 rounded bg-white text-slate-500">
+                            <input type="text" id="edit-type-${idx}" value="${c.type || ''}" placeholder="Từ loại" class="p-2 border border-slate-300 rounded bg-white text-slate-500">
+                        </div>
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button onclick="cancelEdit()" class="px-2.5 py-1 text-slate-600 bg-slate-200 hover:bg-slate-300 rounded font-semibold transition-colors">Hủy</button>
+                            <button onclick="saveEdit(${idx})" class="px-2.5 py-1 text-white bg-indigo-600 hover:bg-indigo-700 rounded font-semibold transition-colors">Lưu</button>
+                        </div>
+                    `;
+                } else {
+                    item.className = "flex justify-between items-center p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs";
+                    item.innerHTML = `
+                        <div>
+                            <strong class="text-slate-800">${c.front}</strong> 
+                            <span class="text-slate-400">${c.sub || ''}</span>
+                            <span class="text-slate-400 italic">${c.type || ''}</span>
+                            <p class="text-indigo-600 font-medium">${c.back}</p>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="startEdit(${idx})" class="text-indigo-600 hover:text-indigo-800 font-bold px-2 py-1 hover:bg-indigo-50 rounded transition-colors">Sửa</button>
+                            <button onclick="deleteCard(${idx})" class="text-rose-600 hover:text-rose-800 font-bold px-2 py-1 hover:bg-rose-50 rounded transition-colors">Xóa</button>
+                        </div>
+                    `;
+                }
                 list.appendChild(item);
             });
         }
 
+        function startEdit(idx) {
+            editingIdx = idx;
+            renderManageList();
+        }
+
+        function cancelEdit() {
+            editingIdx = -1;
+            renderManageList();
+        }
+
+        function saveEdit(idx) {
+            const front = document.getElementById(`edit-front-${idx}`).value.trim();
+            const back = document.getElementById(`edit-back-${idx}`).value.trim();
+            const sub = document.getElementById(`edit-sub-${idx}`).value.trim();
+            const type = document.getElementById(`edit-type-${idx}`).value.trim();
+
+            if (!front || !back) {
+                alert("Từ tiếng Anh và nghĩa Tiếng Việt không được để trống!");
+                return;
+            }
+
+            cardsList[idx].front = front;
+            cardsList[idx].back = back;
+            cardsList[idx].sub = sub;
+            cardsList[idx].type = type;
+
+            editingIdx = -1;
+            saveData();
+            renderManageList();
+            renderFlashcard();
+        }
+
         function deleteCard(idx) {
             cardsList.splice(idx, 1);
+            if (editingIdx === idx) editingIdx = -1;
             saveData();
             renderManageList();
             renderFlashcard();
