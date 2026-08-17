@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Flashcard & Quiz Platform (Quizlet + Wordwall + OpenQuizAI)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .matched-card { visibility: hidden; opacity: 0; transition: opacity 0.3s ease; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col font-sans select-none">
+
+    <!-- Header & Main Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-indigo-600 to-violet-600 text-white p-2.5 rounded-xl shadow-md">
+                    <i data-lucide="brain-circuit" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">WordCard AI Pro</h1>
+                    <p class="text-xs text-slate-500">Flashcard • Wordwall Game • AI Quiz Generator</p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 flex-wrap justify-center">
+                <button id="nav-flashcard" onclick="switchTab('flashcard')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-indigo-600 shadow-sm flex items-center gap-1.5">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                    <span>Flashcard</span>
+                </button>
+                <button id="nav-speller" onclick="switchTab('speller')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-indigo-600 flex items-center gap-1.5">
+                    <i data-lucide="keyboard" class="w-4 h-4"></i>
+                    <span>Luyện Gõ</span>
+                </button>
+                <button id="nav-match" onclick="switchTab('match')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-indigo-600 flex items-center gap-1.5">
+                    <i data-lucide="gamepad-2" class="w-4 h-4"></i>
+                    <span>Nối Từ (Wordwall)</span>
+                </button>
+                <button id="nav-quiz" onclick="switchTab('quiz')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-indigo-600 flex items-center gap-1.5">
+                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+                    <span>Trắc Nghiệm</span>
+                </button>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center gap-2">
+                <button onclick="openAiGeneratorModal()" class="px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    <span>AI Generate</span>
+                </button>
+                <button onclick="openManageModal()" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition-colors" title="Quản lý từ vựng">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- STATUS BAR & STATS -->
+    <div class="bg-indigo-900 text-indigo-100 text-xs py-2 px-4 shadow-inner">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <span>Tổng số từ: <strong id="stat-total" class="text-white">0</strong></span>
+                <span>Đã thuộc: <strong id="stat-learned" class="text-emerald-400">0</strong></span>
+                <span>Cần ôn: <strong id="stat-unlearned" class="text-amber-300">0</strong></span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span>Tiến độ ghi nhớ:</span>
+                <div class="w-24 bg-indigo-950 rounded-full h-2 overflow-hidden border border-indigo-700">
+                    <div id="stat-progress-bar" class="bg-emerald-400 h-full w-0 transition-all duration-500"></div>
+                </div>
+                <span id="stat-percent" class="font-bold text-white">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN VIEW CONTAINER -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6 flex flex-col items-center justify-center">
+
+        <!-- 1. FLASHCARD MODE VIEW -->
+        <section id="sec-flashcard" class="w-full flex flex-col items-center">
+            <div class="w-full max-w-md mb-4 flex justify-between items-center text-sm font-semibold text-slate-600">
+                <span id="fc-progress-text">Thẻ 1 / 1</span>
+                <div class="flex items-center gap-2">
+                    <button id="btn-filter-unlearned" onclick="toggleFilterUnlearned()" class="text-xs bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-full font-bold transition-all flex items-center gap-1">
+                        <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+                        <span id="filter-status-text">Tất cả từ</span>
+                    </button>
+                    <button onclick="shuffleCards()" class="p-1 bg-slate-100 hover:bg-slate-200 text-indigo-600 rounded-lg border border-slate-200" title="Đảo từ">
+                        <i data-lucide="shuffle" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="w-full max-w-md h-[420px] perspective-1000 cursor-pointer relative" id="card-container">
+                <div id="flashcard" class="relative w-full h-full duration-500 transform-style-3d transition-transform shadow-xl rounded-2xl bg-white border border-slate-200">
+                    <!-- Mặt trước -->
+                    <div class="absolute inset-0 w-full h-full backface-hidden rounded-2xl p-6 flex flex-col justify-between bg-white">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full" id="card-type">(n)</span>
+                            <button onclick="speakCurrentWord(event)" class="p-2 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 shadow-sm" title="Phát âm">
+                                <i data-lucide="volume-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+
+                        <div class="my-auto text-center flex flex-col items-center">
+                            <div class="w-40 h-40 mb-3 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center border border-slate-200 shadow-inner">
+                                <img id="card-image" src="" alt="Minh họa" class="w-full h-full object-cover">
+                            </div>
+                            <h2 id="card-front-text" class="text-2xl font-extrabold text-slate-800 tracking-wide">Word</h2>
+                            <p id="card-front-sub" class="text-sm text-slate-400 mt-1 italic">/pronunciation/</p>
+                        </div>
+
+                        <div class="text-center text-xs text-slate-400 flex items-center justify-center gap-1">
+                            <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                            <span>Chạm để xem nghĩa</span>
+                        </div>
+                    </div>
+
+                    <!-- Mặt sau -->
+                    <div class="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl p-6 flex flex-col justify-between bg-gradient-to-br from-indigo-900 to-slate-900 text-white">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-300 bg-indigo-950/60 border border-indigo-800 px-3 py-1 rounded-full">Tiếng Việt</span>
+                            <button onclick="speakCurrentWord(event)" class="p-2 rounded-full bg-indigo-900 hover:bg-indigo-800 text-indigo-200 border border-indigo-700" title="Phát âm">
+                                <i data-lucide="volume-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+
+                        <div class="my-auto text-center px-4">
+                            <h3 id="card-back-text" class="text-3xl font-bold text-white mb-2">Nghĩa</h3>
+                        </div>
+
+                        <div class="text-center text-xs text-indigo-300/70 flex items-center justify-center gap-1">
+                            <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                            <span>Chạm để quay lại mặt trước</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leitner Review Action Controls -->
+            <div class="flex items-center gap-3 mt-6 w-full max-w-md">
+                <button onclick="markCurrentCard(false)" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="x-circle" class="w-5 h-5"></i>
+                    <span>Chưa thuộc</span>
+                </button>
+                <button onclick="markCurrentCard(true)" class="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold py-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                    <span>Đã thuộc</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-4 mt-3 w-full max-w-md justify-between">
+                <button id="btn-prev" onclick="navCard(-1)" class="flex-1 bg-white hover:bg-slate-100 text-slate-700 font-semibold py-2.5 px-4 rounded-xl border border-slate-200 shadow-sm transition-all flex items-center justify-center gap-1">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Trước
+                </button>
+                <button id="btn-next" onclick="navCard(1)" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-1">
+                    Tiếp <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. SPELLER MODE (LUYỆN GÕ TỪ) -->
+        <section id="sec-speller" class="hidden w-full max-w-lg flex flex-col items-center">
+            <div class="w-full bg-white rounded-2xl p-6 shadow-xl border border-slate-200 text-center">
+                <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full mb-4 inline-block">Chế độ Luyện Gõ Từ</span>
+                
+                <div class="w-20 h-20 mx-auto my-4 rounded-full bg-indigo-50 border-2 border-indigo-200 flex items-center justify-center cursor-pointer hover:bg-indigo-100 transition-all" onclick="playSpellerAudio()">
+                    <i data-lucide="volume-2" class="w-8 h-8 text-indigo-600"></i>
+                </div>
+                
+                <p id="speller-hint" class="text-xl font-bold text-slate-800 mb-1">Nghĩa tiếng Việt</p>
+                <p id="speller-sub" class="text-xs text-slate-400 italic mb-6">/phiên âm/</p>
+
+                <form onsubmit="checkSpeller(event)" class="space-y-4">
+                    <input type="text" id="speller-input" placeholder="Gõ từ tiếng Anh chuẩn..." autocomplete="off" class="w-full p-3 text-center text-lg font-bold border-2 border-slate-300 rounded-xl focus:border-indigo-600 focus:outline-none">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="send" class="w-4 h-4"></i> Kiểm Tra
+                    </button>
+                </form>
+
+                <div id="speller-feedback" class="mt-4 p-3 rounded-xl font-bold text-sm hidden"></div>
+            </div>
+        </section>
+
+        <!-- 3. WORDWALL MATCHING GAME MODE -->
+        <section id="sec-match" class="hidden w-full flex flex-col items-center">
+            <div class="w-full max-w-2xl mb-4 flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="timer" class="w-5 h-5 text-indigo-600"></i>
+                    <span class="font-bold text-slate-700">Thời gian: <strong id="match-timer" class="text-indigo-600 font-mono">00:00</strong></span>
+                </div>
+                <div>
+                    <span class="text-xs font-bold text-slate-500">Lượt chọn sai: <strong id="match-errors" class="text-rose-600">0</strong></span>
+                </div>
+                <button onclick="startMatchGame()" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold rounded-lg text-xs flex items-center gap-1">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Chơi lại
+                </button>
+            </div>
+
+            <div id="match-grid" class="w-full max-w-3xl grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <!-- Match cards generated dynamically -->
+            </div>
+        </section>
+
+        <!-- 4. QUIZ MODE -->
+        <section id="sec-quiz" class="hidden w-full max-w-xl flex flex-col items-center">
+            <div class="w-full bg-white rounded-2xl p-6 shadow-xl border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <span id="quiz-progress" class="text-xs font-bold text-slate-500">Câu 1 / 10</span>
+                    <span id="quiz-score" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Điểm: 0</span>
+                </div>
+
+                <div id="quiz-content-area" class="text-center mb-6">
+                    <!-- Dynamic Question Area -->
+                </div>
+
+                <div id="quiz-options" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <!-- Dynamic Options -->
+                </div>
+
+                <div id="quiz-feedback" class="p-3 rounded-xl text-center font-bold text-sm hidden mb-4"></div>
+
+                <button id="btn-next-quiz" onclick="nextQuizQuestion()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 hidden">
+                    <span>Câu tiếp theo</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: AI AUTO-GENERATOR (Kiểu OpenQuizAI) -->
+    <div id="modal-ai-gen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
+                    <span>Tự Động Tạo Từ Vựng Bằng AI Generator</span>
+                </h3>
+                <button onclick="closeAiModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                <p class="text-xs text-slate-600">Dán bất kỳ đoạn văn bản, danh sách từ vựng thô, đoạn hội thoại hoặc tài liệu tiếng Anh vào đây. AI sẽ tự động trích xuất Từ vựng, Phiên âm, Từ loại và Nghĩa tương ứng!</p>
+                <textarea id="ai-input-text" rows="6" placeholder="Dán văn bản tiếng Anh vào đây... Ví dụ: Flashcards are small cards used for testing and improving memory through practiced information retrieval. Flashcards are typically two-sided..." class="w-full p-3 text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"></textarea>
+                
+                <div class="flex justify-end gap-2">
+                    <button onclick="runAiExtract()" class="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2">
+                        <i data-lucide="cpu" class="w-4 h-4"></i> Phân Tích & Tạo Thẻ Tuần Tự
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: QUẢN LÝ TỪ VỰNG -->
+    <div id="modal-manage" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800">Quản Lý Bộ Từ Vựng</h3>
+                <button onclick="closeManageModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-6 flex-1">
+                <form id="form-add-single" onsubmit="handleAddSingle(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-indigo-50/60 p-4 rounded-xl border border-indigo-100">
+                    <input type="text" id="add-front" placeholder="Từ tiếng Anh (VD: Apple)" required class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    <input type="text" id="add-back" placeholder="Nghĩa tiếng Việt (VD: Quả táo)" required class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    <input type="text" id="add-sub" placeholder="Phiên âm (VD: /ˈæp.əl/)" class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    <input type="text" id="add-type" placeholder="Từ loại (VD: (n))" class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    <button type="submit" class="sm:col-span-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Thêm từ mới
+                    </button>
+                </form>
+
+                <div>
+                    <h4 class="text-sm font-bold text-slate-700 mb-3">Danh sách từ vựng hiện tại</h4>
+                    <div id="manage-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS LOGIC SYSTEM -->
+    <script>
+        const PIXABAY_API_KEY = "57125642-58af31ef554df9e96e7f82a46";
+
+        const defaultCards = [
+            { front: "Time", type: "(n)", sub: "/taɪm/", back: "Thời gian", image: "https://cdn.pixabay.com/photo/2016/03/09/09/17/clock-1245602_640.jpg", learned: false },
+            { front: "House", type: "(n)", sub: "/haʊs/", back: "Ngôi nhà", image: "https://cdn.pixabay.com/photo/2016/11/18/17/46/house-1836070_640.jpg", learned: false },
+            { front: "Cat", type: "(n)", sub: "/kæt/", back: "Con mèo", image: "https://cdn.pixabay.com/photo/2014/04/13/20/49/cat-323262_640.jpg", learned: false },
+            { front: "Apple", type: "(n)", sub: "/ˈæp.əl/", back: "Quả táo", image: "https://cdn.pixabay.com/photo/2016/08/12/22/34/apple-1589869_640.jpg", learned: false }
+        ];
+
+        let cardsList = JSON.parse(localStorage.getItem('flashcards_pro_data')) || [...defaultCards];
+        let fcIndex = 0;
+        let fcIsFlipped = false;
+        let filterUnlearnedOnly = false;
+
+        // Global App Initializer
+        function initApp() {
+            saveData();
+            updateStats();
+            renderFlashcard();
+            lucide.createIcons();
+        }
+
+        function saveData() {
+            localStorage.setItem('flashcards_pro_data', JSON.stringify(cardsList));
+            updateStats();
+        }
+
+        function updateStats() {
+            const total = cardsList.length;
+            const learned = cardsList.filter(c => c.learned).length;
+            const unlearned = total - learned;
+            const percent = total > 0 ? Math.round((learned / total) * 100) : 0;
+
+            document.getElementById("stat-total").textContent = total;
+            document.getElementById("stat-learned").textContent = learned;
+            document.getElementById("stat-unlearned").textContent = unlearned;
+            document.getElementById("stat-percent").textContent = `${percent}%`;
+            document.getElementById("stat-progress-bar").style.width = `${percent}%`;
+        }
+
+        // TAB SWITCHING SYSTEM
+        function switchTab(tab) {
+            ['flashcard', 'speller', 'match', 'quiz'].forEach(t => {
+                document.getElementById(`sec-${t}`).classList.add('hidden');
+                const nav = document.getElementById(`nav-${t}`);
+                nav.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-indigo-600 flex items-center gap-1.5";
+            });
+
+            document.getElementById(`sec-${tab}`).classList.remove('hidden');
+            const activeNav = document.getElementById(`nav-${tab}`);
+            activeNav.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-indigo-600 shadow-sm flex items-center gap-1.5";
+
+            if (tab === 'flashcard') renderFlashcard();
+            if (tab === 'speller') startSpeller();
+            if (tab === 'match') startMatchGame();
+            if (tab === 'quiz') startQuiz();
+        }
+
+        // --- FLASHCARD CONTROLLER ---
+        function getActiveCards() {
+            return filterUnlearnedOnly ? cardsList.filter(c => !c.learned) : cardsList;
+        }
+
+        function renderFlashcard() {
+            const active = getActiveCards();
+            const container = document.getElementById("card-container");
+
+            if (active.length === 0) {
+                container.innerHTML = `
+                    <div class="w-full h-full bg-white rounded-2xl p-8 shadow-xl flex flex-col items-center justify-center text-center">
+                        <i data-lucide="check-circle-2" class="w-16 h-16 text-emerald-500 mb-3"></i>
+                        <h3 class="text-xl font-bold text-slate-800">Tuyệt vời!</h3>
+                        <p class="text-sm text-slate-500">Bạn đã thuộc tất cả từ trong nhóm này.</p>
+                    </div>`;
+                document.getElementById("fc-progress-text").textContent = "0 / 0";
+                lucide.createIcons();
+                return;
+            }
+
+            if (fcIndex >= active.length) fcIndex = active.length - 1;
+            const card = active[fcIndex];
+
+            document.getElementById("card-type").textContent = card.type || "(n)";
+            document.getElementById("card-front-text").textContent = card.front;
+            document.getElementById("card-front-sub").textContent = card.sub || "";
+            document.getElementById("card-back-text").textContent = card.back;
+            document.getElementById("card-image").src = card.image || "https://via.placeholder.com/150";
+            document.getElementById("fc-progress-text").textContent = `Thẻ ${fcIndex + 1} / ${active.length}`;
+
+            const fcElem = document.getElementById("flashcard");
+            fcElem.classList.remove("rotate-y-180");
+            fcIsFlipped = false;
+        }
+
+        document.getElementById("card-container").onclick = () => {
+            const fcElem = document.getElementById("flashcard");
+            fcIsFlipped = !fcIsFlipped;
+            if (fcIsFlipped) fcElem.classList.add("rotate-y-180");
+            else fcElem.classList.remove("rotate-y-180");
+        };
+
+        function navCard(dir) {
+            const active = getActiveCards();
+            fcIndex += dir;
+            if (fcIndex < 0) fcIndex = 0;
+            if (fcIndex >= active.length) fcIndex = active.length - 1;
+            renderFlashcard();
+        }
+
+        function markCurrentCard(learned) {
+            const active = getActiveCards();
+            if (active.length === 0) return;
+            active[fcIndex].learned = learned;
+            saveData();
+            navCard(1);
+        }
+
+        function toggleFilterUnlearned() {
+            filterUnlearnedOnly = !filterUnlearnedOnly;
+            fcIndex = 0;
+            document.getElementById("filter-status-text").textContent = filterUnlearnedOnly ? "Chỉ từ chưa nhớ" : "Tất cả từ";
+            renderFlashcard();
+        }
+
+        function shuffleCards() {
+            cardsList.sort(() => Math.random() - 0.5);
+            fcIndex = 0;
+            renderFlashcard();
+        }
+
+        function speakCurrentWord(e) {
+            if (e) e.stopPropagation();
+            const active = getActiveCards();
+            if (!active[fcIndex]) return;
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(active[fcIndex].front);
+            u.lang = 'en-US';
+            window.speechSynthesis.speak(u);
+        }
+
+        // --- SPELLER CONTROLLER ---
+        let spellerIndex = 0;
+        function startSpeller() {
+            spellerIndex = 0;
+            renderSpellerQuestion();
+        }
+
+        function renderSpellerQuestion() {
+            if (cardsList.length === 0) return;
+            const card = cardsList[spellerIndex % cardsList.length];
+            document.getElementById("speller-hint").textContent = card.back;
+            document.getElementById("speller-sub").textContent = card.sub || "";
+            document.getElementById("speller-input").value = "";
+            document.getElementById("speller-feedback").classList.add("hidden");
+            playSpellerAudio();
+        }
+
+        function playSpellerAudio() {
+            const card = cardsList[spellerIndex % cardsList.length];
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(card.front);
+            u.lang = 'en-US';
+            window.speechSynthesis.speak(u);
+        }
+
+        function checkSpeller(e) {
+            e.preventDefault();
+            const val = document.getElementById("speller-input").value.trim().toLowerCase();
+            const card = cardsList[spellerIndex % cardsList.length];
+            const fb = document.getElementById("speller-feedback");
+
+            fb.classList.remove("hidden");
+            if (val === card.front.toLowerCase()) {
+                fb.className = "mt-4 p-3 rounded-xl font-bold text-sm bg-emerald-100 text-emerald-800 block";
+                fb.textContent = "Chính xác! 🎉";
+                card.learned = true;
+                saveData();
+                setTimeout(() => { spellerIndex++; renderSpellerQuestion(); }, 1200);
+            } else {
+                fb.className = "mt-4 p-3 rounded-xl font-bold text-sm bg-rose-100 text-rose-800 block";
+                fb.textContent = `Chưa đúng! Đáp án đúng là: ${card.front}`;
+            }
+        }
+
+        // --- WORDWALL MATCHING GAME CONTROLLER ---
+        let matchSelected = [];
+        let matchTimerInterval = null;
+        let matchSeconds = 0;
+        let matchErrors = 0;
+
+        function startMatchGame() {
+            clearInterval(matchTimerInterval);
+            matchSeconds = 0;
+            matchErrors = 0;
+            matchSelected = [];
+            document.getElementById("match-timer").textContent = "00:00";
+            document.getElementById("match-errors").textContent = "0";
+
+            matchTimerInterval = setInterval(() => {
+                matchSeconds++;
+                const mins = String(Math.floor(matchSeconds / 60)).padStart(2, '0');
+                const secs = String(matchSeconds % 60).padStart(2, '0');
+                document.getElementById("match-timer").textContent = `${mins}:${secs}`;
+            }, 1000);
+
+            const sample = [...cardsList].sort(() => Math.random() - 0.5).slice(0, 6);
+            let items = [];
+            sample.forEach(c => {
+                items.push({ id: c.front, text: c.front, type: 'en' });
+                items.push({ id: c.front, text: c.back, type: 'vi' });
+            });
+            items.sort(() => Math.random() - 0.5);
+
+            const grid = document.getElementById("match-grid");
+            grid.innerHTML = "";
+            items.forEach((item, i) => {
+                const card = document.createElement("div");
+                card.className = "match-card border-2 border-slate-200 bg-white hover:border-indigo-500 rounded-xl p-4 font-bold text-center cursor-pointer shadow-sm transition-all text-slate-800 flex items-center justify-center min-h-[90px]";
+                card.dataset.id = item.id;
+                card.textContent = item.text;
+                card.onclick = () => handleMatchClick(card);
+                grid.appendChild(card);
+            });
+        }
+
+        function handleMatchClick(card) {
+            if (card.classList.contains("matched-card") || matchSelected.includes(card)) return;
+
+            card.classList.add("border-indigo-600", "bg-indigo-50");
+            matchSelected.push(card);
+
+            if (matchSelected.length === 2) {
+                const [c1, c2] = matchSelected;
+                if (c1.dataset.id === c2.dataset.id && c1 !== c2) {
+                    setTimeout(() => {
+                        c1.classList.add("matched-card");
+                        c2.classList.add("matched-card");
+                        matchSelected = [];
+                        checkMatchWin();
+                    }, 300);
+                } else {
+                    matchErrors++;
+                    document.getElementById("match-errors").textContent = matchErrors;
+                    setTimeout(() => {
+                        c1.classList.remove("border-indigo-600", "bg-indigo-50");
+                        c2.classList.remove("border-indigo-600", "bg-indigo-50");
+                        matchSelected = [];
+                    }, 500);
+                }
+            }
+        }
+
+        function checkMatchWin() {
+            const remaining = document.querySelectorAll(".match-card:not(.matched-card)");
+            if (remaining.length === 0) {
+                clearInterval(matchTimerInterval);
+                alert(`Chúc mừng! Bạn đã hoàn thành trò chơi trong ${document.getElementById("match-timer").textContent}!`);
+            }
+        }
+
+        // --- QUIZ CONTROLLER ---
+        let quizIdx = 0;
+        let quizScoreVal = 0;
+
+        function startQuiz() {
+            quizIdx = 0;
+            quizScoreVal = 0;
+            renderQuiz();
+        }
+
+        function renderQuiz() {
+            if (cardsList.length === 0) return;
+            const total = Math.min(cardsList.length, 10);
+            const current = cardsList[quizIdx % cardsList.length];
+
+            document.getElementById("quiz-progress").textContent = `Câu ${quizIdx + 1} / ${total}`;
+            document.getElementById("quiz-score").textContent = `Điểm: ${quizScoreVal}`;
+            document.getElementById("btn-next-quiz").classList.add("hidden");
+            document.getElementById("quiz-feedback").classList.add("hidden");
+
+            const content = document.getElementById("quiz-content-area");
+            content.innerHTML = `
+                <div class="w-32 h-32 mx-auto mb-3 rounded-xl overflow-hidden border border-slate-200">
+                    <img src="${current.image}" class="w-full h-full object-cover">
+                </div>
+                <h3 class="text-2xl font-bold text-slate-800">${current.front}</h3>
+                <p class="text-xs text-slate-400 italic">${current.sub || ''}</p>
+            `;
+
+            let options = [current.back];
+            let others = cardsList.map(c => c.back).filter(b => b !== current.back).sort(() => Math.random() - 0.5);
+            while (options.length < 4 && others.length > 0) options.push(others.pop());
+            options.sort(() => Math.random() - 0.5);
+
+            const optionsContainer = document.getElementById("quiz-options");
+            optionsContainer.innerHTML = "";
+            options.forEach(opt => {
+                const btn = document.createElement("button");
+                btn.className = "p-3 border-2 border-slate-200 rounded-xl font-semibold text-slate-700 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left";
+                btn.textContent = opt;
+                btn.onclick = () => checkQuiz(opt, current.back, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkQuiz(selected, correct, btn) {
+            const btns = document.querySelectorAll("#quiz-options button");
+            btns.forEach(b => b.disabled = true);
+
+            const fb = document.getElementById("quiz-feedback");
+            fb.classList.remove("hidden");
+
+            if (selected === correct) {
+                quizScoreVal++;
+                btn.className = "p-3 border-2 border-emerald-500 bg-emerald-50 text-emerald-800 rounded-xl font-bold text-left";
+                fb.className = "p-3 rounded-xl text-center font-bold text-sm bg-emerald-100 text-emerald-800 block mb-4";
+                fb.textContent = "Chính xác! 🎉";
+            } else {
+                btn.className = "p-3 border-2 border-rose-500 bg-rose-50 text-rose-800 rounded-xl font-bold text-left";
+                fb.className = "p-3 rounded-xl text-center font-bold text-sm bg-rose-100 text-rose-800 block mb-4";
+                fb.textContent = `Sai rồi! Đáp án đúng: ${correct}`;
+            }
+
+            document.getElementById("quiz-score").textContent = `Điểm: ${quizScoreVal}`;
+            document.getElementById("btn-next-quiz").classList.remove("hidden");
+        }
+
+        function nextQuizQuestion() {
+            quizIdx++;
+            renderQuiz();
+        }
+
+        // --- AI GENERATOR MODAL (Kiểu OpenQuizAI) ---
+        function openAiGeneratorModal() {
+            document.getElementById("modal-ai-gen").classList.remove("hidden");
+        }
+        function closeAiModal() {
+            document.getElementById("modal-ai-gen").classList.add("hidden");
+        }
+
+        async function runAiExtract() {
+    const text = document.getElementById("ai-input-text").value.trim();
+    if (!text) return alert("Vui lòng dán đoạn văn bản!");
+
+    // 1. Trích xuất các từ tiếng Anh (từ 4 ký tự trở lên)
+    const words = text.match(/\b[A-Za-z]{4,}\b/g) || [];
+    const uniqueWords = [...new Set(words)].slice(0, 5); // Lấy tối đa 5 từ mỗi lần
+
+    if (uniqueWords.length === 0) {
+        return alert("Không tìm thấy từ vựng phù hợp trong đoạn văn bản!");
+    }
+
+    alert(`Đang phân tích và dịch ${uniqueWords.length} từ vựng... Vui lòng đợi trong giây lát!`);
+
+    for (const w of uniqueWords) {
+        const cleanWord = w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+        let translatedText = "Chưa có nghĩa";
+
+        try {
+            // 2. Gọi API Dịch sang tiếng Việt miễn phí
+            const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanWord)}&langpair=en|vi`);
+            const data = await res.json();
+            if (data && data.responseData && data.responseData.translatedText) {
+                translatedText = data.responseData.translatedText;
+            }
+        } catch (err) {
+            console.error("Lỗi khi dịch từ:", cleanWord, err);
+        }
+
+        // 3. Thêm từ đã dịch vào danh sách Flashcard
+        cardsList.push({
+            front: cleanWord,
+            back: translatedText,
+            sub: `/${cleanWord.toLowerCase()}/`,
+            type: "(n)",
+            image: `https://source.unsplash.com/featured/?${cleanWord}`,
+            learned: false
+        });
+    }
+
+    saveData();
+    closeAiModal();
+    alert(`Đã tạo thành công ${uniqueWords.length} thẻ từ vựng mới có nghĩa Tiếng Việt!`);
+    renderFlashcard();
+}
+        function renderManageList() {
+            const list = document.getElementById("manage-list");
+            list.innerHTML = "";
+            cardsList.forEach((c, idx) => {
+                const item = document.createElement("div");
+                item.className = "flex justify-between items-center p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs";
+                item.innerHTML = `
+                    <div>
+                        <strong class="text-slate-800">${c.front}</strong> <span class="text-slate-400">${c.sub}</span>
+                        <p class="text-indigo-600">${c.back}</p>
+                    </div>
+                    <button onclick="deleteCard(${idx})" class="text-rose-600 hover:text-rose-800 font-bold">Xóa</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function deleteCard(idx) {
+            cardsList.splice(idx, 1);
+            saveData();
+            renderManageList();
+            renderFlashcard();
+        }
+
+        // Initialize App on load
+        window.onload = initApp;
+    </script>
+</body>
+</html>
