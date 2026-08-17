@@ -407,13 +407,32 @@
             initApp();
         };
 
-        function initApp() {
-            renderStudentSelector();
-            saveData();
-            updateStats();
-            renderFlashcard();
-            lucide.createIcons();
+      // HÀM MỚI ĐÃ BỔ SUNG TÍNH NĂNG ĐỌC URL:
+function initApp() {
+    // 1. Đọc tham số ?student=... từ đường dẫn URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const studentFromUrl = urlParams.get('student');
+
+    // 2. Nếu tìm thấy tên học viên trên URL
+    if (studentFromUrl) {
+        const decodedName = decodeURIComponent(studentFromUrl);
+        
+        // Nếu học viên chưa có trong dữ liệu, tạo một bộ từ vựng trống cho học viên này
+        if (!studentsData.students[decodedName]) {
+            studentsData.students[decodedName] = [];
         }
+        
+        // Đặt học viên hiện tại theo URL
+        currentStudent = decodedName;
+    }
+
+    // 3. Khởi tạo giao diện
+    renderStudentSelector();
+    saveData();
+    updateStats();
+    renderFlashcard();
+    lucide.createIcons();
+}
 
         function saveData() {
             studentsData.students[currentStudent] = cardsList;
