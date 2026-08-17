@@ -827,7 +827,7 @@
             document.getElementById("quiz-content-area").innerHTML = `
                 <p class="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">Chọn từ chính xác điền vào chỗ trống:</p>
                 <h3 class="text-lg font-bold text-slate-800 bg-slate-50 p-4 rounded-xl border border-slate-200">${sentence}</h3>
-                <p class="text-xs text-slate-400 mt-2 italic">Gợi ý nghĩa: ${targetCard.back}</p>`;
+             `;
 
             let options = [targetCard.front];
             let otherWords = cardsList.filter(c => c.front !== targetCard.front).map(c => c.front);
