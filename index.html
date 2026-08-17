@@ -57,7 +57,6 @@
 
             <!-- Header Action Controls & Student Selector -->
             <div class="flex items-center gap-2">
-                <!-- KHU VỰC CHỌN HỌC VIÊN -->
                 <div class="flex items-center bg-slate-100 border border-slate-200 rounded-xl px-2 py-1 gap-1">
                     <i data-lucide="user" class="w-4 h-4 text-indigo-600"></i>
                     <select id="student-selector" onchange="switchStudent(this.value)" class="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer">
@@ -113,7 +112,7 @@
                 </div>
             </div>
 
-            <div class="w-full max-w-md h-[420px] perspective-1000 cursor-pointer relative" id="card-container">
+            <div class="w-full max-w-md h-[420px] perspective-1000 cursor-pointer relative" id="card-container" onclick="toggleFlipCard()">
                 <!-- Flashcard content loaded dynamically -->
             </div>
 
@@ -182,7 +181,7 @@
             </div>
         </section>
 
-        <!-- 4. QUIZ MODE (ĐỤC LỖ TỪ VỰNG TRONG CÂU VÍ DỤ + 4 ĐÁP ÁN) -->
+        <!-- 4. QUIZ MODE (TRẮC NGHIỆM TỰ ĐỘNG THÔNG MINH + SỬA CÂU HỎI THỦ CÔNG) -->
         <section id="sec-quiz" class="hidden w-full max-w-xl flex flex-col items-center">
             <div class="w-full bg-white rounded-2xl p-6 shadow-xl border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
@@ -226,7 +225,7 @@
         </div>
     </div>
 
-    <!-- MODAL QUẢN LÝ TỪ VỰNG & ẢNH -->
+    <!-- MODAL QUẢN LÝ TỪ VỰNG & SỬA CÂU HỎI TRẮC NGHIỆM -->
     <div id="modal-manage" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
@@ -240,27 +239,38 @@
             </div>
 
             <div class="p-6 overflow-y-auto space-y-6 flex-1">
-                <!-- TAB CHUYỂN ĐỔI GIỮA THÊM TỪNG TỪ VÀ THÊM HÀNG LOẠT (BULK) -->
                 <div class="flex border-b border-slate-200 gap-4 text-sm font-bold">
-                    <button id="btn-tab-single" onclick="toggleAddMode('single')" class="pb-2 border-b-2 border-indigo-600 text-indigo-600">Thêm từng từ</button>
+                    <button id="btn-tab-single" onclick="toggleAddMode('single')" class="pb-2 border-b-2 border-indigo-600 text-indigo-600">Thêm / Chỉnh sửa từ</button>
                     <button id="btn-tab-bulk" onclick="toggleAddMode('bulk')" class="pb-2 border-b-2 border-transparent text-slate-500 hover:text-indigo-600">Thêm hàng loạt (Bulk Import)</button>
                 </div>
 
-                <!-- FORM 1: Thêm từng từ -->
+                <!-- FORM 1: Thêm / Sửa chi tiết câu hỏi & từ vựng -->
                 <form id="form-add-single" onsubmit="handleAddSingle(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-indigo-50/60 p-4 rounded-xl border border-indigo-100">
+                    <input type="hidden" id="edit-index" value="-1">
                     <input type="text" id="add-front" placeholder="Từ tiếng Anh (VD: House)" required class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
                     <input type="text" id="add-back" placeholder="Nghĩa tiếng Việt (VD: Ngôi nhà)" required class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
                     <input type="text" id="add-sub" placeholder="Phiên âm (VD: /haʊs/)" class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
                     <input type="text" id="add-type" placeholder="Từ loại (VD: (n))" class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
-                    <input type="text" id="add-example" placeholder="Ví dụ (VD: My house is next to the supermarket.)" class="sm:col-span-2 p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    
+                    <!-- Phần chỉnh sửa câu hỏi ví dụ dùng làm trắc nghiệm -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Câu hỏi ví dụ (Dùng cho phần Trắc Nghiệm - đục lỗ từ):</label>
+                        <input type="text" id="add-example" placeholder="VD: My house is next to the supermarket." class="w-full p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    </div>
+
                     <input type="url" id="add-custom-url" placeholder="URL Ảnh tùy chỉnh (Để trống sẽ tự tìm Pixabay)" class="sm:col-span-2 p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
                     
-                    <button type="submit" class="sm:col-span-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all flex items-center justify-center gap-2">
-                        <i data-lucide="plus" class="w-4 h-4"></i> Thêm từ mới
-                    </button>
+                    <div class="sm:col-span-2 flex gap-2">
+                        <button type="submit" id="btn-submit-single" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i> <span id="btn-submit-text">Thêm từ mới</span>
+                        </button>
+                        <button type="button" id="btn-cancel-edit" onclick="resetSingleForm()" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-4 py-2.5 rounded-lg text-sm transition-all">
+                            Hủy
+                        </button>
+                    </div>
                 </form>
 
-                <!-- FORM 2: Thêm hàng loạt (BULK IMPORT) -->
+                <!-- FORM 2: Bulk Import -->
                 <form id="form-add-bulk" onsubmit="handleBulkImport(event)" class="hidden space-y-3 bg-emerald-50/60 p-4 rounded-xl border border-emerald-100">
                     <div class="text-xs text-slate-600 space-y-1">
                         <p class="font-bold text-emerald-800">Nhập danh sách theo định dạng (mỗi từ 1 dòng):</p>
@@ -268,7 +278,6 @@
                             Từ vựng | Phiên âm | Nghĩa tiếng Việt | Ví dụ<br>
                             <span class="text-slate-400">VD: House | /haʊs/ | Ngôi nhà | My house is next to the supermarket.</span>
                         </p>
-                        <p class="text-[11px] text-slate-500 italic">* Hệ thống chấp nhận phân cách bằng dấu gạch đứng (|), dấu phẩy (,) hoặc Tab (Excel).</p>
                     </div>
 
                     <textarea id="bulk-input" rows="5" placeholder="Dán danh sách từ của bạn vào đây..." required class="w-full p-3 text-xs rounded-lg border border-slate-300 bg-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
@@ -281,14 +290,14 @@
 
                 <!-- Danh sách hiện tại -->
                 <div>
-                    <h4 class="text-sm font-bold text-slate-700 mb-3">Danh sách từ vựng hiện tại</h4>
+                    <h4 class="text-sm font-bold text-slate-700 mb-3">Danh sách từ vựng & câu hỏi hiện tại</h4>
                     <div id="manage-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL TÌM KẾT QUẢ ẢNH PIXABAY HOẶC DÁN URL -->
+    <!-- MODAL TÌM KẾT QUẢ ẢNH PIXABAY HOẶC DÁN URL & XÓA ẢNH -->
     <div id="modal-image-picker" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
             <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
@@ -301,14 +310,24 @@
                 </button>
             </div>
 
-            <!-- PHẦN DÁN URL TRỰC TIẾP KHI KHÔNG CÓ ẢNH PHÙ HỢP -->
-            <div class="p-4 border-b border-slate-200 bg-amber-50/50">
-                <label class="block text-xs font-bold text-amber-900 mb-1">Dán liên kết (URL) ảnh tùy chọn:</label>
-                <div class="flex items-center gap-2">
-                    <input type="url" id="picker-direct-url" placeholder="https://example.com/image.jpg" class="flex-1 px-3 py-2 text-sm border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
-                    <button onclick="applyDirectImageUrl()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-1">
-                        <i data-lucide="link" class="w-4 h-4"></i>
-                        <span>Sử dụng URL này</span>
+            <!-- TÍNH NĂNG XÓA ẢNH VÀ DÁN URL -->
+            <div class="p-4 border-b border-slate-200 bg-amber-50/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex-1 w-full">
+                    <label class="block text-xs font-bold text-amber-900 mb-1">Dán liên kết (URL) ảnh tùy chọn:</label>
+                    <div class="flex items-center gap-2">
+                        <input type="url" id="picker-direct-url" placeholder="https://example.com/image.jpg" class="flex-1 px-3 py-2 text-sm border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                        <button onclick="applyDirectImageUrl()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shrink-0">
+                            <i data-lucide="link" class="w-4 h-4"></i>
+                            <span>Lưu URL</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- NÚT XÓA ẢNH -->
+                <div class="w-full sm:w-auto flex sm:flex-col justify-end pt-1 sm:pt-4">
+                    <button onclick="removeCurrentImage()" class="w-full bg-rose-100 hover:bg-rose-200 text-rose-700 border border-rose-300 px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 shrink-0">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span>Xóa ảnh hiện tại</span>
                     </button>
                 </div>
             </div>
@@ -349,7 +368,6 @@
             { front: "Apple", type: "(n)", sub: "/ˈæp.əl/", back: "Quả táo", example: "An apple a day keeps the doctor away.", image: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400", learned: false }
         ];
 
-        // HỆ THỐNG CẤU TRÚC LƯU MỤC HỌC VIÊN
         let studentsData = JSON.parse(localStorage.getItem('multi_student_vocab_db')) || {
             activeStudent: "Học Viên Mẫu",
             students: {
@@ -364,6 +382,18 @@
         let filterUnlearnedOnly = false;
         let currentTargetImgIndex = -1;
 
+        // Variables for Speller, Match, Quiz
+        let spellerIndex = 0;
+        let matchCards = [];
+        let selectedMatchCards = [];
+        let matchTimerInterval = null;
+        let matchTime = 0;
+        let matchErrors = 0;
+
+        let quizQuestions = [];
+        let quizCurrentIdx = 0;
+        let quizScore = 0;
+
         window.onload = () => {
             initApp();
         };
@@ -376,7 +406,6 @@
             lucide.createIcons();
         }
 
-        // Cập nhật & lưu dữ liệu theo từng học viên
         function saveData() {
             studentsData.students[currentStudent] = cardsList;
             studentsData.activeStudent = currentStudent;
@@ -385,7 +414,6 @@
             renderManageList();
         }
 
-        // QUẢN LÝ CHUYỂN ĐỔI HỌC VIÊN
         function renderStudentSelector() {
             const select = document.getElementById("student-selector");
             select.innerHTML = "";
@@ -465,9 +493,33 @@
             return filterUnlearnedOnly ? cardsList.filter(c => !c.learned) : cardsList;
         }
 
+        function toggleFilterUnlearned() {
+            filterUnlearnedOnly = !filterUnlearnedOnly;
+            document.getElementById("filter-status-text").textContent = filterUnlearnedOnly ? "Chưa thuộc" : "Tất cả từ";
+            fcIndex = 0;
+            renderFlashcard();
+        }
+
+        function shuffleCards() {
+            cardsList.sort(() => Math.random() - 0.5);
+            fcIndex = 0;
+            saveData();
+            renderFlashcard();
+        }
+
+        function toggleFlipCard() {
+            fcIsFlipped = !fcIsFlipped;
+            const el = document.getElementById("flashcard");
+            if (el) {
+                if (fcIsFlipped) el.classList.add("rotate-y-180");
+                else el.classList.remove("rotate-y-180");
+            }
+        }
+
         function renderFlashcard() {
             const active = getActiveCards();
             const container = document.getElementById("card-container");
+            fcIsFlipped = false;
 
             if (active.length === 0) {
                 container.innerHTML = `
@@ -485,18 +537,23 @@
             if (fcIndex < 0) fcIndex = 0;
             const card = active[fcIndex];
 
+            const imgHtml = card.image 
+                ? `<img src="${card.image}" alt="Minh họa" class="w-full h-full object-cover">`
+                : `<div class="text-slate-300 font-bold text-xs flex flex-col items-center"><i data-lucide="image-off" class="w-8 h-8 mb-1"></i>Không có ảnh</div>`;
+
             container.innerHTML = `
                 <div id="flashcard" class="relative w-full h-full duration-500 transform-style-3d transition-transform shadow-xl rounded-2xl bg-white border border-slate-200">
+                    <!-- FRONT -->
                     <div class="absolute inset-0 w-full h-full backface-hidden rounded-2xl p-6 flex flex-col justify-between bg-white">
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">${card.type || '(n)'}</span>
-                            <button onclick="speakCurrentWord(event)" class="p-2 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 shadow-sm" title="Phát âm">
+                            <button onclick="event.stopPropagation(); speakCurrentWord()" class="p-2 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 shadow-sm" title="Phát âm">
                                 <i data-lucide="volume-2" class="w-5 h-5"></i>
                             </button>
                         </div>
                         <div class="my-auto text-center flex flex-col items-center">
                             <div class="w-40 h-40 mb-3 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center border border-slate-200 shadow-inner">
-                                <img src="${card.image || 'https://via.placeholder.com/150'}" alt="Minh họa" class="w-full h-full object-cover">
+                                ${imgHtml}
                             </div>
                             <h2 class="text-2xl font-extrabold text-slate-800 tracking-wide">${card.front}</h2>
                             <p class="text-sm text-slate-400 mt-1 italic">${card.sub || ''}</p>
@@ -506,518 +563,523 @@
                             <span>Chạm để xem nghĩa</span>
                         </div>
                     </div>
-                    <div class="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl p-6 flex flex-col justify-between bg-gradient-to-br from-indigo-900 to-slate-900 text-white">
+
+                    <!-- BACK -->
+                    <div class="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl p-6 flex flex-col justify-between bg-slate-900 text-white">
                         <div class="flex justify-between items-center">
-                            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-300 bg-indigo-950/60 border border-indigo-800 px-3 py-1 rounded-full">Tiếng Việt</span>
-                            <button onclick="speakCurrentWord(event)" class="p-2 rounded-full bg-indigo-900 hover:bg-indigo-800 text-indigo-200 border border-indigo-700" title="Phát âm">
-                                <i data-lucide="volume-2" class="w-5 h-5"></i>
-                            </button>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-300 bg-indigo-950 px-3 py-1 rounded-full border border-indigo-800">Tiếng Việt</span>
+                            <span class="text-xs font-bold text-emerald-400">${card.learned ? '✓ Đã thuộc' : '○ Chưa thuộc'}</span>
                         </div>
-                        <div class="my-auto text-center px-4">
-                            <h3 class="text-3xl font-bold text-white mb-2">${card.back}</h3>
-                            ${card.example ? `<p class="text-xs text-indigo-200/80 italic mt-3 bg-indigo-950/40 p-2 rounded-lg border border-indigo-800/50">" ${card.example} "</p>` : ''}
+                        <div class="my-auto text-center">
+                            <h3 class="text-3xl font-extrabold text-amber-300 mb-3">${card.back}</h3>
+                            ${card.example ? `<div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 text-xs sm:text-sm text-slate-200 italic font-medium">"${card.example}"</div>` : ''}
                         </div>
-                        <div class="text-center text-xs text-indigo-300/70 flex items-center justify-center gap-1">
+                        <div class="text-center text-xs text-slate-400 flex items-center justify-center gap-1">
                             <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
-                            <span>Chạm để quay lại mặt trước</span>
+                            <span>Chạm để lật lại</span>
                         </div>
                     </div>
                 </div>`;
 
             document.getElementById("fc-progress-text").textContent = `Thẻ ${fcIndex + 1} / ${active.length}`;
-            fcIsFlipped = false;
             lucide.createIcons();
         }
-
-        document.getElementById("card-container").onclick = (e) => {
-            if (e.target.closest('button')) return;
-            const fcElem = document.getElementById("flashcard");
-            if (!fcElem) return;
-            fcIsFlipped = !fcIsFlipped;
-            if (fcIsFlipped) fcElem.classList.add("rotate-y-180");
-            else fcElem.classList.remove("rotate-y-180");
-        };
 
         function navCard(dir) {
             const active = getActiveCards();
             if (active.length === 0) return;
-            fcIndex += dir;
-            if (fcIndex < 0) fcIndex = 0;
-            if (fcIndex >= active.length) fcIndex = active.length - 1;
+            fcIndex = (fcIndex + dir + active.length) % active.length;
             renderFlashcard();
         }
 
-        function markCurrentCard(learned) {
+        function markCurrentCard(status) {
             const active = getActiveCards();
             if (active.length === 0) return;
-            active[fcIndex].learned = learned;
+            active[fcIndex].learned = status;
             saveData();
             navCard(1);
         }
 
-        function toggleFilterUnlearned() {
-            filterUnlearnedOnly = !filterUnlearnedOnly;
-            fcIndex = 0;
-            document.getElementById("filter-status-text").textContent = filterUnlearnedOnly ? "Chỉ từ chưa nhớ" : "Tất cả từ";
-            renderFlashcard();
-        }
-
-        function shuffleCards() {
-            cardsList.sort(() => Math.random() - 0.5);
-            fcIndex = 0;
-            renderFlashcard();
-        }
-
-        function speakCurrentWord(e) {
-            if (e) e.stopPropagation();
+        function speakCurrentWord() {
             const active = getActiveCards();
-            if (!active[fcIndex]) return;
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(active[fcIndex].front);
-            u.lang = 'en-US';
-            window.speechSynthesis.speak(u);
+            if (active.length === 0) return;
+            speakText(active[fcIndex].front);
         }
 
-        // --- SPELLER CONTROLLER ---
-        let spellerIndex = 0;
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'en-US';
+                window.speechSynthesis.speak(u);
+            }
+        }
+
+        // --- SPELLER MODE ---
         function startSpeller() {
-            spellerIndex = 0;
-            renderSpellerQuestion();
-        }
-
-        function renderSpellerQuestion() {
-            if (cardsList.length === 0) return;
-            const card = cardsList[spellerIndex % cardsList.length];
+            if (cardsList.length === 0) {
+                document.getElementById("speller-hint").textContent = "Không có từ vựng";
+                document.getElementById("speller-sub").textContent = "";
+                return;
+            }
+            spellerIndex = Math.floor(Math.random() * cardsList.length);
+            const card = cardsList[spellerIndex];
             document.getElementById("speller-hint").textContent = card.back;
-            document.getElementById("speller-sub").textContent = card.sub || "";
+            document.getElementById("speller-sub").textContent = card.sub || '';
             document.getElementById("speller-input").value = "";
             document.getElementById("speller-feedback").className = "mt-4 p-3 rounded-xl font-bold text-sm hidden";
-            playSpellerAudio();
+            speakText(card.front);
         }
 
         function playSpellerAudio() {
-            if (cardsList.length === 0) return;
-            const card = cardsList[spellerIndex % cardsList.length];
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(card.front);
-            u.lang = 'en-US';
-            window.speechSynthesis.speak(u);
+            if (cardsList[spellerIndex]) {
+                speakText(cardsList[spellerIndex].front);
+            }
         }
 
         function checkSpeller(e) {
             e.preventDefault();
-            const val = document.getElementById("speller-input").value.trim().toLowerCase();
-            const card = cardsList[spellerIndex % cardsList.length];
+            const input = document.getElementById("speller-input").value.trim().toLowerCase();
+            const target = cardsList[spellerIndex].front.trim().toLowerCase();
             const fb = document.getElementById("speller-feedback");
 
             fb.classList.remove("hidden");
-            if (val === card.front.toLowerCase()) {
-                fb.className = "mt-4 p-3 rounded-xl font-bold text-sm bg-emerald-100 text-emerald-800 block";
-                fb.textContent = "Chính xác! 🎉";
-                card.learned = true;
+            if (input === target) {
+                fb.className = "mt-4 p-3 rounded-xl font-bold text-sm bg-emerald-100 text-emerald-800 border border-emerald-300";
+                fb.textContent = " Chính xác! Rất tốt!";
+                cardsList[spellerIndex].learned = true;
                 saveData();
-                setTimeout(() => { spellerIndex++; renderSpellerQuestion(); }, 1200);
+                setTimeout(() => startSpeller(), 1200);
             } else {
-                fb.className = "mt-4 p-3 rounded-xl font-bold text-sm bg-rose-100 text-rose-800 block";
-                fb.textContent = `Chưa đúng! Đáp án đúng là: ${card.front}`;
+                fb.className = "mt-4 p-3 rounded-xl font-bold text-sm bg-rose-100 text-rose-800 border border-rose-300";
+                fb.textContent = ` Chưa đúng! Đáp án chính xác là: "${cardsList[spellerIndex].front}"`;
             }
         }
 
-        // --- WORDWALL MATCHING GAME ---
-        let matchSelected = [];
-        let matchTimerInterval = null;
-        let matchSeconds = 0;
-        let matchErrors = 0;
-
+        // --- MATCHING GAME ---
         function startMatchGame() {
             clearInterval(matchTimerInterval);
-            matchSeconds = 0;
+            matchTime = 0;
             matchErrors = 0;
-            matchSelected = [];
+            selectedMatchCards = [];
             document.getElementById("match-timer").textContent = "00:00";
             document.getElementById("match-errors").textContent = "0";
 
-            if (cardsList.length === 0) {
-                document.getElementById("match-grid").innerHTML = `<p class="col-span-4 text-center text-slate-500 py-8">Chưa có từ vựng nào để chơi!</p>`;
+            if (cardsList.length < 2) {
+                document.getElementById("match-grid").innerHTML = `<div class="col-span-4 text-center py-8 text-slate-500">Cần ít nhất 2 từ vựng để chơi nối từ!</div>`;
                 return;
             }
 
-            matchTimerInterval = setInterval(() => {
-                matchSeconds++;
-                const mins = String(Math.floor(matchSeconds / 60)).padStart(2, '0');
-                const secs = String(matchSeconds % 60).padStart(2, '0');
-                document.getElementById("match-timer").textContent = `${mins}:${secs}`;
-            }, 1000);
-
-            const sample = [...cardsList].sort(() => Math.random() - 0.5).slice(0, 6);
+            const gameCards = [...cardsList].sort(() => Math.random() - 0.5).slice(0, 6);
             let items = [];
-            sample.forEach(c => {
-                items.push({ id: c.front, text: c.front });
-                items.push({ id: c.front, text: c.back });
+            gameCards.forEach((c, idx) => {
+                items.push({ id: idx, text: c.front, type: 'en' });
+                items.push({ id: idx, text: c.back, type: 'vi' });
             });
             items.sort(() => Math.random() - 0.5);
 
             const grid = document.getElementById("match-grid");
             grid.innerHTML = "";
-            items.forEach((item) => {
-                const card = document.createElement("div");
-                card.className = "match-card border-2 border-slate-200 bg-white hover:border-indigo-500 rounded-xl p-4 font-bold text-center cursor-pointer shadow-sm transition-all text-slate-800 flex items-center justify-center min-h-[90px]";
-                card.dataset.id = item.id;
-                card.textContent = item.text;
-                card.onclick = () => handleMatchClick(card);
-                grid.appendChild(card);
+            items.forEach((item, index) => {
+                const btn = document.createElement("button");
+                btn.className = "h-24 bg-white hover:bg-indigo-50 border-2 border-slate-200 rounded-xl font-bold text-slate-800 p-2 text-sm shadow-sm transition-all flex items-center justify-center text-center select-none";
+                btn.textContent = item.text;
+                btn.dataset.id = item.id;
+                btn.dataset.type = item.type;
+                btn.dataset.index = index;
+                btn.onclick = () => handleMatchSelect(btn);
+                grid.appendChild(btn);
             });
+
+            matchTimerInterval = setInterval(() => {
+                matchTime++;
+                const m = String(Math.floor(matchTime / 60)).padStart(2, '0');
+                const s = String(matchTime % 60).padStart(2, '0');
+                document.getElementById("match-timer").textContent = `${m}:${s}`;
+            }, 1000);
         }
 
-        function handleMatchClick(card) {
-            if (card.classList.contains("matched-card") || matchSelected.includes(card)) return;
+        function handleMatchSelect(btn) {
+            if (btn.classList.contains("matched-card") || selectedMatchCards.includes(btn)) return;
 
-            card.classList.add("border-indigo-600", "bg-indigo-50");
-            matchSelected.push(card);
+            btn.classList.add("border-indigo-600", "bg-indigo-50", "text-indigo-600");
+            selectedMatchCards.push(btn);
 
-            if (matchSelected.length === 2) {
-                const [c1, c2] = matchSelected;
-                if (c1.dataset.id === c2.dataset.id && c1 !== c2) {
-                    setTimeout(() => {
-                        c1.classList.add("matched-card");
-                        c2.classList.add("matched-card");
-                        matchSelected = [];
-                        checkMatchWin();
-                    }, 300);
+            if (selectedMatchCards.length === 2) {
+                const [first, second] = selectedMatchCards;
+                if (first.dataset.id === second.dataset.id && first.dataset.type !== second.dataset.type) {
+                    first.classList.add("matched-card");
+                    second.classList.add("matched-card");
+                    selectedMatchCards = [];
+
+                    const remaining = document.querySelectorAll("#match-grid button:not(.matched-card)");
+                    if (remaining.length === 0) {
+                        clearInterval(matchTimerInterval);
+                        setTimeout(() => alert(`Chúc mừng! Bạn hoàn thành trong ${matchTime} giây với ${matchErrors} lỗi.`), 300);
+                    }
                 } else {
                     matchErrors++;
                     document.getElementById("match-errors").textContent = matchErrors;
+                    first.classList.add("border-rose-500", "bg-rose-50");
+                    second.classList.add("border-rose-500", "bg-rose-50");
+
                     setTimeout(() => {
-                        c1.classList.remove("border-indigo-600", "bg-indigo-50");
-                        c2.classList.remove("border-indigo-600", "bg-indigo-50");
-                        matchSelected = [];
-                    }, 500);
+                        first.className = "h-24 bg-white hover:bg-indigo-50 border-2 border-slate-200 rounded-xl font-bold text-slate-800 p-2 text-sm shadow-sm transition-all flex items-center justify-center text-center select-none";
+                        second.className = "h-24 bg-white hover:bg-indigo-50 border-2 border-slate-200 rounded-xl font-bold text-slate-800 p-2 text-sm shadow-sm transition-all flex items-center justify-center text-center select-none";
+                        selectedMatchCards = [];
+                    }, 600);
                 }
             }
         }
 
-        function checkMatchWin() {
-            const remaining = document.querySelectorAll(".match-card:not(.matched-card)");
-            if (remaining.length === 0) {
-                clearInterval(matchTimerInterval);
-                const mins = String(Math.floor(matchSeconds / 60)).padStart(2, '0');
-                const secs = String(matchSeconds % 60).padStart(2, '0');
-                
-                document.getElementById("match-grid").innerHTML = `
-                    <div class="col-span-2 sm:col-span-4 bg-white rounded-2xl p-8 text-center border border-slate-200 shadow-lg">
-                        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <i data-lucide="trophy" class="w-8 h-8"></i>
-                        </div>
-                        <h3 class="text-2xl font-extrabold text-slate-800 mb-1">Chúc mừng bạn đã hoàn thành!</h3>
-                        <p class="text-sm text-slate-500 mb-4">Thời gian hoàn thành: <strong class="text-indigo-600 font-mono">${mins}:${secs}</strong> | Lỗi: <strong class="text-rose-600">${matchErrors}</strong></p>
-                        <button onclick="startMatchGame()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all">
-                            Chơi lại lượt mới
-                        </button>
-                    </div>`;
-                lucide.createIcons();
-            }
-        }
-
-        // --- QUIZ CONTROLLER (ĐỤC LỖ TỪ VỰNG TIẾNG ANH TRONG CÂU VÍ DỤ + 4 ĐÁP ÁN) ---
-        let quizIndex = 0;
-        let quizScore = 0;
-
+        // --- QUIZ MODE SYSTEM ---
         function startQuiz() {
-            quizIndex = 0;
+            if (cardsList.length === 0) {
+                document.getElementById("quiz-content-area").innerHTML = `<p class="text-slate-500">Bộ từ vựng trống!</p>`;
+                document.getElementById("quiz-options").innerHTML = "";
+                return;
+            }
+
             quizScore = 0;
+            quizCurrentIdx = 0;
+            quizQuestions = [...cardsList].sort(() => Math.random() - 0.5);
+
+            document.getElementById("quiz-score").textContent = `Điểm: 0`;
             renderQuizQuestion();
         }
 
         function renderQuizQuestion() {
-            if (cardsList.length === 0) return;
-            const card = cardsList[quizIndex % cardsList.length];
-
-            document.getElementById("quiz-progress").textContent = `Câu ${quizIndex + 1} / ${cardsList.length}`;
-            document.getElementById("quiz-score").textContent = `Điểm: ${quizScore}`;
             document.getElementById("btn-next-quiz").classList.add("hidden");
+            document.getElementById("quiz-feedback").classList.add("hidden");
 
-            const feedback = document.getElementById("quiz-feedback");
-            feedback.className = "p-3 rounded-xl text-center font-bold text-sm hidden mb-4";
-
-            // Chuẩn bị câu ví dụ
-            let rawSentence = card.example;
-            if (!rawSentence || rawSentence.trim() === "") {
-                rawSentence = `This ______ is very nice.`;
+            if (quizCurrentIdx >= quizQuestions.length) {
+                document.getElementById("quiz-content-area").innerHTML = `
+                    <i data-lucide="trophy" class="w-16 h-16 text-amber-500 mx-auto mb-3"></i>
+                    <h3 class="text-2xl font-bold text-slate-800">Hoàn thành Trắc Nghiệm!</h3>
+                    <p class="text-sm text-slate-600 mt-2">Tổng điểm của bạn: <strong class="text-indigo-600 text-lg">${quizScore} / ${quizQuestions.length}</strong></p>`;
+                document.getElementById("quiz-options").innerHTML = "";
+                lucide.createIcons();
+                return;
             }
 
-            // Tìm và đục lỗ từ vựng tiếng Anh chính xác (Ví dụ: "house" -> "______")
-            const wordRegex = new RegExp(`\\b${card.front}\\b`, "gi");
-            let blankSentence = rawSentence;
-            
-            if (wordRegex.test(rawSentence)) {
-                blankSentence = rawSentence.replace(wordRegex, '<span class="inline-block border-b-2 border-indigo-600 px-2 font-extrabold text-indigo-600">______</span>');
+            document.getElementById("quiz-progress").textContent = `Câu ${quizCurrentIdx + 1} / ${quizQuestions.length}`;
+            const targetCard = quizQuestions[quizCurrentIdx];
+
+            // Đục lỗ từ vựng trong ví dụ
+            let sentence = targetCard.example || targetCard.front;
+            if (targetCard.example) {
+                const reg = new RegExp(targetCard.front, "gi");
+                sentence = targetCard.example.replace(reg, "______");
             } else {
-                blankSentence = rawSentence.replace(new RegExp(card.front, "gi"), '<span class="inline-block border-b-2 border-indigo-600 px-2 font-extrabold text-indigo-600">______</span>');
+                sentence = `______ : ${targetCard.back}`;
             }
 
-            const questionHtml = `
-                <div class="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 mb-4 text-center">
-                    <span class="text-[10px] uppercase font-bold text-indigo-600 tracking-wider bg-white px-2.5 py-1 rounded-md border border-indigo-200">Chọn từ đúng điền vào chỗ trống</span>
-                    <p class="text-xl font-semibold text-slate-800 mt-3 mb-2 leading-relaxed font-serif">"${blankSentence}"</p>
-                    <p class="text-xs text-slate-500">Nghĩa tiếng Việt: <strong class="text-slate-700 font-bold">${card.back}</strong></p>
-                </div>
-            `;
+            document.getElementById("quiz-content-area").innerHTML = `
+                <p class="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">Chọn từ chính xác điền vào chỗ trống:</p>
+                <h3 class="text-lg font-bold text-slate-800 bg-slate-50 p-4 rounded-xl border border-slate-200">${sentence}</h3>
+                <p class="text-xs text-slate-400 mt-2 italic">Gợi ý nghĩa: ${targetCard.back}</p>`;
 
-            document.getElementById("quiz-content-area").innerHTML = questionHtml;
+            // Tạo 4 đáp án
+            let options = [targetCard.front];
+            let otherWords = cardsList.filter(c => c.front !== targetCard.front).map(c => c.front);
+            otherWords.sort(() => Math.random() - 0.5);
 
-            // Tạo 4 đáp án (1 đáp án đúng + 3 từ nhiễu)
-            let options = [card.front];
-            let otherCards = cardsList.filter(c => c.front.toLowerCase() !== card.front.toLowerCase());
-            otherCards.sort(() => Math.random() - 0.5);
-
-            for (let i = 0; i < Math.min(3, otherCards.length); i++) {
-                options.push(otherCards[i].front);
+            while (options.length < 4 && otherWords.length > 0) {
+                options.push(otherWords.pop());
             }
-
-            // Nếu số lượng từ trong bộ thẻ < 4, tự động thêm các từ giả lập để đủ 4 đáp án
-            const fillerWords = ["building", "garden", "school", "park", "car", "street"];
-            let fillerIdx = 0;
-            while (options.length < 4 && fillerIdx < fillerWords.length) {
-                if (!options.includes(fillerWords[fillerIdx])) {
-                    options.push(fillerWords[fillerIdx]);
-                }
-                fillerIdx++;
-            }
-
-            // Đảo ngẫu nhiên vị trí các đáp án
             options.sort(() => Math.random() - 0.5);
 
-            const optionsContainer = document.getElementById("quiz-options");
-            optionsContainer.innerHTML = "";
-
+            const optContainer = document.getElementById("quiz-options");
+            optContainer.innerHTML = "";
             options.forEach(opt => {
                 const btn = document.createElement("button");
-                btn.className = "quiz-opt-btn w-full p-3.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-500 rounded-xl font-bold text-slate-700 text-base transition-all shadow-sm";
+                btn.className = "w-full p-3 font-bold text-slate-700 bg-slate-100 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-500 rounded-xl transition-all text-sm";
                 btn.textContent = opt;
-                btn.onclick = () => answerQuiz(btn, opt, card.front);
-                optionsContainer.appendChild(btn);
+                btn.onclick = () => checkQuizAnswer(opt, targetCard.front, btn);
+                optContainer.appendChild(btn);
             });
         }
 
-        function answerQuiz(btnElement, selected, correct) {
-            const feedback = document.getElementById("quiz-feedback");
-            feedback.classList.remove("hidden");
+        function checkQuizAnswer(selected, correct, btn) {
+            const btns = document.querySelectorAll("#quiz-options button");
+            btns.forEach(b => b.disabled = true);
 
-            const allBtns = document.querySelectorAll(".quiz-opt-btn");
-            allBtns.forEach(b => {
-                b.disabled = true;
-                if (b.textContent.toLowerCase() === correct.toLowerCase()) {
-                    b.classList.add("bg-emerald-100", "border-emerald-500", "text-emerald-800");
-                }
-            });
+            const fb = document.getElementById("quiz-feedback");
+            fb.classList.remove("hidden");
 
-            if (selected.toLowerCase() === correct.toLowerCase()) {
-                quizScore += 10;
-                feedback.className = "p-3 rounded-xl text-center font-bold text-sm bg-emerald-100 text-emerald-800 mb-4 block";
-                feedback.textContent = "Chính xác! 🎉 (+10 điểm)";
+            if (selected === correct) {
+                btn.className = "w-full p-3 font-bold text-white bg-emerald-600 border border-emerald-600 rounded-xl text-sm";
+                fb.className = "p-3 rounded-xl text-center font-bold text-sm bg-emerald-100 text-emerald-800 border border-emerald-300 mb-4";
+                fb.textContent = " Chính xác!";
+                quizScore++;
+                document.getElementById("quiz-score").textContent = `Điểm: ${quizScore}`;
             } else {
-                btnElement.classList.add("bg-rose-100", "border-rose-500", "text-rose-800");
-                feedback.className = "p-3 rounded-xl text-center font-bold text-sm bg-rose-100 text-rose-800 mb-4 block";
-                feedback.textContent = `Chưa đúng! Đáp án đúng là: "${correct}"`;
+                btn.className = "w-full p-3 font-bold text-white bg-rose-600 border border-rose-600 rounded-xl text-sm";
+                fb.className = "p-3 rounded-xl text-center font-bold text-sm bg-rose-100 text-rose-800 border border-rose-300 mb-4";
+                fb.textContent = ` Sai rồi! Đáp án đúng phải là: "${correct}"`;
+
+                btns.forEach(b => {
+                    if (b.textContent === correct) {
+                        b.className = "w-full p-3 font-bold text-white bg-emerald-600 border border-emerald-600 rounded-xl text-sm";
+                    }
+                });
             }
 
-            document.getElementById("quiz-score").textContent = `Điểm: ${quizScore}`;
             document.getElementById("btn-next-quiz").classList.remove("hidden");
         }
 
         function nextQuizQuestion() {
-            quizIndex++;
+            quizCurrentIdx++;
             renderQuizQuestion();
         }
 
-        // --- MANAGE & AUTOMATIC PIXABAY / BULK IMPORT CONTROLLER ---
+        // --- MANAGE MODAL & EDITING ---
         function openManageModal() {
             document.getElementById("manage-student-title").textContent = currentStudent;
-            document.getElementById("modal-manage").classList.remove("hidden");
+            resetSingleForm();
             renderManageList();
+            document.getElementById("modal-manage").classList.remove("hidden");
+            lucide.createIcons();
         }
 
         function closeManageModal() {
             document.getElementById("modal-manage").classList.add("hidden");
+            renderFlashcard();
         }
 
         function toggleAddMode(mode) {
-            const formSingle = document.getElementById("form-add-single");
-            const formBulk = document.getElementById("form-add-bulk");
             const btnSingle = document.getElementById("btn-tab-single");
             const btnBulk = document.getElementById("btn-tab-bulk");
+            const formSingle = document.getElementById("form-add-single");
+            const formBulk = document.getElementById("form-add-bulk");
 
             if (mode === 'single') {
-                formSingle.classList.remove("hidden");
-                formBulk.classList.add("hidden");
                 btnSingle.className = "pb-2 border-b-2 border-indigo-600 text-indigo-600";
                 btnBulk.className = "pb-2 border-b-2 border-transparent text-slate-500 hover:text-indigo-600";
+                formSingle.classList.remove("hidden");
+                formBulk.classList.add("hidden");
             } else {
-                formSingle.classList.add("hidden");
-                formBulk.classList.remove("hidden");
                 btnBulk.className = "pb-2 border-b-2 border-emerald-600 text-emerald-600";
                 btnSingle.className = "pb-2 border-b-2 border-transparent text-slate-500 hover:text-indigo-600";
+                formBulk.classList.remove("hidden");
+                formSingle.classList.add("hidden");
             }
         }
 
-        async function fetchAutoPixabayImage(keyword) {
-            try {
-                const res = await fetch(`https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(keyword)}&image_type=photo&per_page=3`);
-                const data = await res.json();
-                if (data.hits && data.hits.length > 0) {
-                    return data.hits[0].webformatURL;
-                }
-            } catch (err) {
-                console.error("Lỗi tự động lấy ảnh Pixabay:", err);
+        function renderManageList() {
+            const container = document.getElementById("manage-list");
+            if (cardsList.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic">Chưa có từ nào trong danh sách.</p>`;
+                return;
             }
-            return "https://images.unsplash.com/photo-1501139083538-0139583c060f?w=400";
+
+            container.innerHTML = "";
+            cardsList.forEach((item, index) => {
+                const div = document.createElement("div");
+                div.className = "p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 text-xs";
+                
+                const imgThumb = item.image 
+                    ? `<img src="${item.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-200">`
+                    : `<div class="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-400" title="Chưa có ảnh"><i data-lucide="image-off" class="w-4 h-4"></i></div>`;
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        ${imgThumb}
+                        <div class="truncate">
+                            <p class="font-bold text-slate-800 truncate">${item.front} <span class="text-indigo-600 font-normal">${item.sub || ''}</span></p>
+                            <p class="text-slate-500 truncate">${item.back}</p>
+                            ${item.example ? `<p class="text-[11px] text-slate-400 italic truncate" title="${item.example}">Ví dụ (Quiz): "${item.example}"</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <!-- Nút Chỉnh sửa từ & câu hỏi trắc nghiệm -->
+                        <button onclick="editCard(${index})" class="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg" title="Sửa từ & câu hỏi">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </button>
+                        <!-- Nút Quản lý ảnh -->
+                        <button onclick="openImagePickerModal(${index})" class="p-1.5 text-amber-600 hover:bg-amber-100 rounded-lg" title="Đổi / Xóa ảnh">
+                            <i data-lucide="image" class="w-4 h-4"></i>
+                        </button>
+                        <!-- Nút Xóa từ -->
+                        <button onclick="deleteCard(${index})" class="p-1.5 text-rose-600 hover:bg-rose-100 rounded-lg" title="Xóa từ">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>`;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        // TÍNH NĂNG SỬA TỪ VỰNG & CÂU HỎI TRẮC NGHIỆM
+        function editCard(index) {
+            const card = cardsList[index];
+            document.getElementById("edit-index").value = index;
+            document.getElementById("add-front").value = card.front || "";
+            document.getElementById("add-back").value = card.back || "";
+            document.getElementById("add-sub").value = card.sub || "";
+            document.getElementById("add-type").value = card.type || "";
+            document.getElementById("add-example").value = card.example || "";
+            document.getElementById("add-custom-url").value = card.image || "";
+
+            document.getElementById("btn-submit-text").textContent = "Cập nhật từ & câu hỏi";
+            document.getElementById("btn-cancel-edit").classList.remove("hidden");
+            toggleAddMode('single');
+        }
+
+        function resetSingleForm() {
+            document.getElementById("edit-index").value = "-1";
+            document.getElementById("add-front").value = "";
+            document.getElementById("add-back").value = "";
+            document.getElementById("add-sub").value = "";
+            document.getElementById("add-type").value = "";
+            document.getElementById("add-example").value = "";
+            document.getElementById("add-custom-url").value = "";
+
+            document.getElementById("btn-submit-text").textContent = "Thêm từ mới";
+            document.getElementById("btn-cancel-edit").classList.add("hidden");
         }
 
         async function handleAddSingle(e) {
             e.preventDefault();
+            const editIdx = parseInt(document.getElementById("edit-index").value);
             const front = document.getElementById("add-front").value.trim();
             const back = document.getElementById("add-back").value.trim();
             const sub = document.getElementById("add-sub").value.trim();
             const type = document.getElementById("add-type").value.trim();
             const example = document.getElementById("add-example").value.trim();
-            const customUrl = document.getElementById("add-custom-url").value.trim();
+            let customUrl = document.getElementById("add-custom-url").value.trim();
 
             if (!front || !back) return;
 
-            let finalImage = customUrl;
-            if (!finalImage) {
-                finalImage = await fetchAutoPixabayImage(front);
+            if (!customUrl && editIdx === -1) {
+                try {
+                    const res = await fetch(`https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(front)}&image_type=photo&per_page=3`);
+                    const data = await res.json();
+                    if (data.hits && data.hits.length > 0) {
+                        customUrl = data.hits[0].webformatURL;
+                    }
+                } catch (err) {
+                    console.error("Lỗi lấy ảnh Pixabay:", err);
+                }
             }
 
-            cardsList.push({
+            const cardObj = {
                 front,
                 back,
                 sub,
-                type: type || "(n)",
+                type: type || '(n)',
                 example,
-                image: finalImage,
-                learned: false
-            });
+                image: customUrl || (editIdx !== -1 ? cardsList[editIdx].image : ""),
+                learned: editIdx !== -1 ? cardsList[editIdx].learned : false
+            };
+
+            if (editIdx >= 0) {
+                cardsList[editIdx] = cardObj;
+            } else {
+                cardsList.push(cardObj);
+            }
 
             saveData();
-            document.getElementById("form-add-single").reset();
-            renderFlashcard();
+            resetSingleForm();
         }
 
-        // TÍNH NĂNG THÊM HÀNG LOẠT (BULK IMPORT)
         async function handleBulkImport(e) {
             e.preventDefault();
-            const rawText = document.getElementById("bulk-input").value.trim();
-            if (!rawText) return;
+            const text = document.getElementById("bulk-input").value.trim();
+            if (!text) return;
 
-            const btnSubmit = document.getElementById("btn-submit-bulk");
-            const originalBtnHtml = btnSubmit.innerHTML;
-            btnSubmit.disabled = true;
-            btnSubmit.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Đang xử lý & Tìm ảnh tự động...</span>`;
+            const lines = text.split('\n');
+            const btn = document.getElementById("btn-submit-bulk");
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Đang tự động lấy ảnh Pixabay...`;
             lucide.createIcons();
 
-            const lines = rawText.split('\n');
             for (let line of lines) {
-                line = line.trim();
-                if (!line) continue;
-
+                if (!line.trim()) continue;
                 let parts = line.split('|');
                 if (parts.length < 2) parts = line.split('\t');
                 if (parts.length < 2) parts = line.split(',');
 
-                const front = parts[0] ? parts[0].trim() : '';
-                const sub = parts[1] ? parts[1].trim() : '';
-                const back = parts[2] ? parts[2].trim() : (parts[1] ? parts[1].trim() : '');
-                const example = parts[3] ? parts[3].trim() : '';
+                const front = parts[0] ? parts[0].trim() : "";
+                const sub = parts[1] ? parts[1].trim() : "";
+                const back = parts[2] ? parts[2].trim() : (parts[1] ? parts[1].trim() : "");
+                const example = parts[3] ? parts[3].trim() : "";
 
                 if (front && back) {
-                    const image = await fetchAutoPixabayImage(front);
+                    let img = "";
+                    try {
+                        const res = await fetch(`https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(front)}&image_type=photo&per_page=3`);
+                        const data = await res.json();
+                        if (data.hits && data.hits.length > 0) img = data.hits[0].webformatURL;
+                    } catch (err) {}
+
                     cardsList.push({
                         front,
-                        sub,
+                        sub: sub.startsWith('/') ? sub : (sub ? `/${sub}/` : ''),
                         back,
                         example,
-                        type: "(n)",
-                        image,
+                        type: '(n)',
+                        image: img,
                         learned: false
                     });
                 }
             }
 
-            saveData();
             document.getElementById("bulk-input").value = "";
-            btnSubmit.disabled = false;
-            btnSubmit.innerHTML = originalBtnHtml;
-            lucide.createIcons();
-            
-            renderFlashcard();
-            alert(`Đã thêm thành công các từ vựng mới vào bộ thẻ của ${currentStudent}!`);
-        }
-
-        function renderManageList() {
-            const container = document.getElementById("manage-list");
-            container.innerHTML = "";
-
-            cardsList.forEach((card, idx) => {
-                const item = document.createElement("div");
-                item.className = "flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs";
-                item.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <img src="${card.image}" class="w-10 h-10 object-cover rounded-lg border border-slate-200">
-                        <div>
-                            <p class="font-bold text-slate-800">${card.front} <span class="font-normal text-slate-400">${card.sub || ''}</span></p>
-                            <p class="text-slate-500">${card.back}</p>
-                            ${card.example ? `<p class="text-[10px] text-slate-400 italic">VD: ${card.example}</p>` : ''}
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="openImagePickerForCard(${idx})" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold rounded-lg transition-all flex items-center gap-1">
-                            <i data-lucide="image" class="w-3.5 h-3.5"></i> Đổi ảnh
-                        </button>
-                        <button onclick="deleteCard(${idx})" class="p-1 text-rose-500 hover:bg-rose-50 rounded-lg">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                `;
-                container.appendChild(item);
-            });
-            lucide.createIcons();
-        }
-
-        function deleteCard(idx) {
-            cardsList.splice(idx, 1);
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="file-plus" class="w-4 h-4"></i> Thêm danh sách & Tự động lấy ảnh Pixabay`;
             saveData();
-            renderFlashcard();
+            toggleAddMode('single');
         }
 
-        // --- PIXABAY & CUSTOM URL IMAGE PICKER ---
-        function openImagePickerForCard(idx) {
-            currentTargetImgIndex = idx;
-            const card = cardsList[idx];
+        function deleteCard(index) {
+            if (confirm("Bạn có chắc muốn xóa từ này khỏi danh sách?")) {
+                cardsList.splice(index, 1);
+                saveData();
+            }
+        }
+
+        // --- IMAGE PICKER & REMOVE IMAGE LOGIC ---
+        function openImagePickerModal(index) {
+            currentTargetImgIndex = index;
+            const card = cardsList[index];
             document.getElementById("picker-word-title").textContent = card.front;
+            document.getElementById("picker-direct-url").value = card.image || "";
             document.getElementById("img-search-query").value = card.front;
-            document.getElementById("picker-direct-url").value = "";
             document.getElementById("modal-image-picker").classList.remove("hidden");
             executePixabaySearch();
         }
 
         function closeImagePickerModal() {
             document.getElementById("modal-image-picker").classList.add("hidden");
+            renderManageList();
+        }
+
+        // TÍNH NĂNG XÓA ẢNH
+        function removeCurrentImage() {
+            if (currentTargetImgIndex >= 0 && currentTargetImgIndex < cardsList.length) {
+                cardsList[currentTargetImgIndex].image = "";
+                document.getElementById("picker-direct-url").value = "";
+                saveData();
+                closeImagePickerModal();
+            }
         }
 
         function applyDirectImageUrl() {
             const url = document.getElementById("picker-direct-url").value.trim();
-            if (url) {
-                selectImageForCard(url);
+            if (currentTargetImgIndex >= 0 && currentTargetImgIndex < cardsList.length) {
+                cardsList[currentTargetImgIndex].image = url;
+                saveData();
+                closeImagePickerModal();
             }
         }
 
         async function executePixabaySearch() {
             const query = document.getElementById("img-search-query").value.trim();
+            if (!query) return;
+
             const grid = document.getElementById("image-search-grid");
             const loading = document.getElementById("image-search-loading");
-
-            if (!query) return;
 
             grid.innerHTML = "";
             loading.classList.remove("hidden");
@@ -1025,31 +1087,30 @@
             try {
                 const res = await fetch(`https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&per_page=12`);
                 const data = await res.json();
-
                 loading.classList.add("hidden");
 
-                if (data.hits && data.hits.length > 0) {
-                    data.hits.forEach(img => {
-                        const imgElem = document.createElement("div");
-                        imgElem.className = "aspect-square rounded-xl overflow-hidden border-2 border-slate-200 hover:border-indigo-600 cursor-pointer transition-all shadow-sm group relative";
-                        imgElem.innerHTML = `<img src="${img.webformatURL}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">`;
-                        imgElem.onclick = () => selectImageForCard(img.webformatURL);
-                        grid.appendChild(imgElem);
-                    });
-                } else {
-                    grid.innerHTML = `<p class="col-span-4 text-center text-slate-400 py-8 text-xs">Không tìm thấy ảnh trên Pixabay! Hãy dán URL ảnh ở trên.</p>`;
+                if (!data.hits || data.hits.length === 0) {
+                    grid.innerHTML = `<p class="col-span-full text-center text-xs text-slate-400 py-6">Không tìm thấy ảnh phù hợp trên Pixabay.</p>`;
+                    return;
                 }
+
+                data.hits.forEach(item => {
+                    const imgDiv = document.createElement("div");
+                    imgDiv.className = "group relative h-28 rounded-xl overflow-hidden cursor-pointer border border-slate-200 hover:border-indigo-600 shadow-sm transition-all";
+                    imgDiv.innerHTML = `<img src="${item.webformatURL}" class="w-full h-full object-cover group-hover:scale-105 transition-all">`;
+                    imgDiv.onclick = () => selectPixabayImage(item.webformatURL);
+                    grid.appendChild(imgDiv);
+                });
             } catch (err) {
                 loading.classList.add("hidden");
-                grid.innerHTML = `<p class="col-span-4 text-center text-rose-500 py-8 text-xs">Có lỗi kết nối tới API Pixabay!</p>`;
+                grid.innerHTML = `<p class="col-span-full text-center text-xs text-rose-500 py-6">Lỗi kết nối Pixabay!</p>`;
             }
         }
 
-        function selectImageForCard(url) {
+        function selectPixabayImage(url) {
             if (currentTargetImgIndex >= 0 && currentTargetImgIndex < cardsList.length) {
                 cardsList[currentTargetImgIndex].image = url;
                 saveData();
-                renderFlashcard();
                 closeImagePickerModal();
             }
         }
