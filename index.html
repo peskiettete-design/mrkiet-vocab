@@ -1179,6 +1179,19 @@ function initApp() {
                 closeImagePickerModal();
             }
         }
+        function shareStudentLink() {
+    // Tự tạo URL chứa tham số student=Tên_Học_Viên
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}?student=${encodeURIComponent(currentStudent)}`;
+
+    // Sao chép đường dẫn vào bộ nhớ tạm (Clipboard)
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        alert(`Đã sao chép đường dẫn bài học cho "${currentStudent}"!\n\nLink: ${shareUrl}`);
+    }).catch(err => {
+        // Phương án dự phòng nếu trình duyệt chặn tự động copy
+        prompt("Sao chép đường dẫn dưới đây để gửi cho học sinh:", shareUrl);
+    });
+}
     </script>
 </body>
 </html>
