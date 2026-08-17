@@ -31,7 +31,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-slate-900 leading-tight">WordCard AI Pro</h1>
-                    <p class="text-xs text-slate-500">Flashcard • Wordwall Game • AI Quiz Generator</p>
+                    <p class="text-xs text-slate-500">Flashcard • Wordwall Game • Multi-Student System</p>
                 </div>
             </div>
 
@@ -55,14 +55,22 @@
                 </button>
             </div>
 
-            <!-- Header Action Controls -->
+            <!-- Header Action Controls & Student Selector -->
             <div class="flex items-center gap-2">
-                <button onclick="openAiGeneratorModal()" class="px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                    <i data-lucide="sparkles" class="w-4 h-4"></i>
-                    <span>AI Generate</span>
-                </button>
-                <button onclick="openManageModal()" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition-colors" title="Quản lý từ vựng">
+                <!-- KHU VỰC CHỌN HỌC VIÊN -->
+                <div class="flex items-center bg-slate-100 border border-slate-200 rounded-xl px-2 py-1 gap-1">
+                    <i data-lucide="user" class="w-4 h-4 text-indigo-600"></i>
+                    <select id="student-selector" onchange="switchStudent(this.value)" class="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer">
+                        <!-- Rendered dynamically -->
+                    </select>
+                    <button onclick="openAddStudentModal()" class="p-1 hover:bg-slate-200 text-indigo-600 rounded-lg" title="Thêm học viên mới">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <button onclick="openManageModal()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
                     <i data-lucide="settings" class="w-4 h-4"></i>
+                    <span>Quản lý từ vựng</span>
                 </button>
             </div>
         </div>
@@ -72,6 +80,7 @@
     <div class="bg-indigo-900 text-indigo-100 text-xs py-2 px-4 shadow-inner">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-4">
+                <span>Học viên: <strong id="stat-student-name" class="text-amber-300 font-bold">Default</strong></span>
                 <span>Tổng số từ: <strong id="stat-total" class="text-white">0</strong></span>
                 <span>Đã thuộc: <strong id="stat-learned" class="text-emerald-400">0</strong></span>
                 <span>Cần ôn: <strong id="stat-unlearned" class="text-amber-300">0</strong></span>
@@ -105,7 +114,7 @@
             </div>
 
             <div class="w-full max-w-md h-[420px] perspective-1000 cursor-pointer relative" id="card-container">
-                <!-- Content generated dynamically -->
+                <!-- Flashcard content loaded dynamically -->
             </div>
 
             <!-- Action Controls -->
@@ -173,7 +182,7 @@
             </div>
         </section>
 
-        <!-- 4. QUIZ MODE -->
+        <!-- 4. QUIZ MODE (ĐỤC LỖ TỪ VỰNG TRONG CÂU VÍ DỤ + 4 ĐÁP ÁN) -->
         <section id="sec-quiz" class="hidden w-full max-w-xl flex flex-col items-center">
             <div class="w-full bg-white rounded-2xl p-6 shadow-xl border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
@@ -193,60 +202,84 @@
 
     </main>
 
-    <!-- MODAL 1: AI GENERATOR (GEMINI INTEGRATED) -->
-    <div id="modal-ai-gen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
-            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                    <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
-                    <span>Tự Động Tạo Từ Vựng Bằng AI (Gemini)</span>
+    <!-- MODAL THÊM HỌC VIÊN MỚI -->
+    <div id="modal-add-student" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="user-plus" class="w-5 h-5 text-indigo-600"></i>
+                    Thêm Học Viên Mới
                 </h3>
-                <button onclick="closeAiModal()" class="text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-6 h-6"></i>
+                <button onclick="closeAddStudentModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-
-            <div class="p-6 overflow-y-auto space-y-4 flex-1">
+            <form onsubmit="handleCreateStudent(event)" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Gemini API Key (Miễn phí từ Google AI Studio):</label>
-                    <input type="password" id="gemini-api-key" placeholder="Nhập API Key của bạn..." class="w-full p-2.5 text-xs rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Tên học viên / Bộ từ vựng:</label>
+                    <input type="text" id="new-student-name" placeholder="VD: Nguyễn Văn A - Lop 6" required class="w-full p-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:border-indigo-600">
                 </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Đoạn văn bản / Tài liệu tiếng Anh:</label>
-                    <textarea id="ai-input-text" rows="5" placeholder="Dán văn bản tiếng Anh vào đây..." class="w-full p-3 text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:outline-none"></textarea>
-                </div>
-
-                <div class="flex justify-end gap-2">
-                    <button id="btn-run-ai" onclick="runAiExtract()" class="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2">
-                        <i data-lucide="cpu" class="w-4 h-4"></i> Phân Tích & Phân Loại Bằng AI
-                    </button>
-                </div>
-            </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-sm transition-all">
+                    Tạo Học Viên
+                </button>
+            </form>
         </div>
     </div>
 
-    <!-- MODAL 2: QUẢN LÝ TỪ VỰNG & CHỈNH SỬA -->
+    <!-- MODAL QUẢN LÝ TỪ VỰNG & ẢNH -->
     <div id="modal-manage" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                <h3 class="font-bold text-slate-800">Quản Lý Bộ Từ Vựng</h3>
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="settings" class="w-5 h-5 text-indigo-600"></i>
+                    <span>Quản Lý Bộ Từ Vựng của: <strong id="manage-student-title" class="text-indigo-600"></strong></span>
+                </h3>
                 <button onclick="closeManageModal()" class="text-slate-400 hover:text-slate-600">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
 
             <div class="p-6 overflow-y-auto space-y-6 flex-1">
+                <!-- TAB CHUYỂN ĐỔI GIỮA THÊM TỪNG TỪ VÀ THÊM HÀNG LOẠT (BULK) -->
+                <div class="flex border-b border-slate-200 gap-4 text-sm font-bold">
+                    <button id="btn-tab-single" onclick="toggleAddMode('single')" class="pb-2 border-b-2 border-indigo-600 text-indigo-600">Thêm từng từ</button>
+                    <button id="btn-tab-bulk" onclick="toggleAddMode('bulk')" class="pb-2 border-b-2 border-transparent text-slate-500 hover:text-indigo-600">Thêm hàng loạt (Bulk Import)</button>
+                </div>
+
+                <!-- FORM 1: Thêm từng từ -->
                 <form id="form-add-single" onsubmit="handleAddSingle(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-indigo-50/60 p-4 rounded-xl border border-indigo-100">
-                    <input type="text" id="add-front" placeholder="Từ tiếng Anh (VD: Apple)" required class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
-                    <input type="text" id="add-back" placeholder="Nghĩa tiếng Việt (VD: Quả táo)" required class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
-                    <input type="text" id="add-sub" placeholder="Phiên âm (VD: /ˈæp.əl/)" class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    <input type="text" id="add-front" placeholder="Từ tiếng Anh (VD: House)" required class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    <input type="text" id="add-back" placeholder="Nghĩa tiếng Việt (VD: Ngôi nhà)" required class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    <input type="text" id="add-sub" placeholder="Phiên âm (VD: /haʊs/)" class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
                     <input type="text" id="add-type" placeholder="Từ loại (VD: (n))" class="p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    <input type="text" id="add-example" placeholder="Ví dụ (VD: My house is next to the supermarket.)" class="sm:col-span-2 p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    <input type="url" id="add-custom-url" placeholder="URL Ảnh tùy chỉnh (Để trống sẽ tự tìm Pixabay)" class="sm:col-span-2 p-2.5 text-sm rounded-lg border border-slate-300 bg-white">
+                    
                     <button type="submit" class="sm:col-span-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all flex items-center justify-center gap-2">
                         <i data-lucide="plus" class="w-4 h-4"></i> Thêm từ mới
                     </button>
                 </form>
 
+                <!-- FORM 2: Thêm hàng loạt (BULK IMPORT) -->
+                <form id="form-add-bulk" onsubmit="handleBulkImport(event)" class="hidden space-y-3 bg-emerald-50/60 p-4 rounded-xl border border-emerald-100">
+                    <div class="text-xs text-slate-600 space-y-1">
+                        <p class="font-bold text-emerald-800">Nhập danh sách theo định dạng (mỗi từ 1 dòng):</p>
+                        <p class="bg-white p-2 rounded border border-emerald-200 font-mono text-[11px]">
+                            Từ vựng | Phiên âm | Nghĩa tiếng Việt | Ví dụ<br>
+                            <span class="text-slate-400">VD: House | /haʊs/ | Ngôi nhà | My house is next to the supermarket.</span>
+                        </p>
+                        <p class="text-[11px] text-slate-500 italic">* Hệ thống chấp nhận phân cách bằng dấu gạch đứng (|), dấu phẩy (,) hoặc Tab (Excel).</p>
+                    </div>
+
+                    <textarea id="bulk-input" rows="5" placeholder="Dán danh sách từ của bạn vào đây..." required class="w-full p-3 text-xs rounded-lg border border-slate-300 bg-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+
+                    <button type="submit" id="btn-submit-bulk" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="file-plus" class="w-4 h-4"></i>
+                        <span>Thêm danh sách & Tự động lấy ảnh Pixabay</span>
+                    </button>
+                </form>
+
+                <!-- Danh sách hiện tại -->
                 <div>
                     <h4 class="text-sm font-bold text-slate-700 mb-3">Danh sách từ vựng hiện tại</h4>
                     <div id="manage-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
@@ -255,34 +288,146 @@
         </div>
     </div>
 
+    <!-- MODAL TÌM KẾT QUẢ ẢNH PIXABAY HOẶC DÁN URL -->
+    <div id="modal-image-picker" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="image" class="w-5 h-5 text-indigo-600"></i>
+                    <span>Cập nhật ảnh cho từ: <span id="picker-word-title" class="text-indigo-600 font-extrabold"></span></span>
+                </h3>
+                <button onclick="closeImagePickerModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- PHẦN DÁN URL TRỰC TIẾP KHI KHÔNG CÓ ẢNH PHÙ HỢP -->
+            <div class="p-4 border-b border-slate-200 bg-amber-50/50">
+                <label class="block text-xs font-bold text-amber-900 mb-1">Dán liên kết (URL) ảnh tùy chọn:</label>
+                <div class="flex items-center gap-2">
+                    <input type="url" id="picker-direct-url" placeholder="https://example.com/image.jpg" class="flex-1 px-3 py-2 text-sm border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                    <button onclick="applyDirectImageUrl()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-1">
+                        <i data-lucide="link" class="w-4 h-4"></i>
+                        <span>Sử dụng URL này</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 border-b border-slate-100 bg-white">
+                <p class="text-xs font-bold text-slate-500 mb-1">Hoặc tìm ảnh trực tuyến trên Pixabay:</p>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="img-search-query" placeholder="Nhập từ khóa tìm ảnh..." class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                    <button onclick="executePixabaySearch()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                        <span>Tìm kiếm</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex-1 bg-slate-50">
+                <div id="image-search-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+                <div id="image-search-loading" class="hidden py-12 text-center text-slate-400">
+                    <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-2 text-indigo-600"></i>
+                    <p class="text-xs">Đang tải danh sách ảnh Pixabay...</p>
+                </div>
+            </div>
+
+            <div class="p-3 border-t border-slate-200 bg-slate-50 text-right">
+                <button onclick="closeImagePickerModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-all">Đóng</button>
+            </div>
+        </div>
+    </div>
+
     <!-- JS LOGIC SYSTEM -->
     <script>
+        const PIXABAY_API_KEY = "57125642-58af31ef554df9e96e7f82a46";
+
         const defaultCards = [
-            { front: "Time", type: "(n)", sub: "/taɪm/", back: "Thời gian", image: "https://images.unsplash.com/photo-1501139083538-0139583c060f?w=400", learned: false },
-            { front: "House", type: "(n)", sub: "/haʊs/", back: "Ngôi nhà", image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=400", learned: false },
-            { front: "Cat", type: "(n)", sub: "/kæt/", back: "Con mèo", image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400", learned: false },
-            { front: "Apple", type: "(n)", sub: "/ˈæp.əl/", back: "Quả táo", image: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400", learned: false }
+            { front: "House", type: "(n)", sub: "/haʊs/", back: "Ngôi nhà", example: "My house is next to the supermarket.", image: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=400", learned: false },
+            { front: "Time", type: "(n)", sub: "/taɪm/", back: "Thời gian", example: "Time is money.", image: "https://images.unsplash.com/photo-1501139083538-0139583c060f?w=400", learned: false },
+            { front: "Cat", type: "(n)", sub: "/kæt/", back: "Con mèo", example: "The cat is sleeping on the sofa.", image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400", learned: false },
+            { front: "Apple", type: "(n)", sub: "/ˈæp.əl/", back: "Quả táo", example: "An apple a day keeps the doctor away.", image: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400", learned: false }
         ];
 
-        let cardsList = JSON.parse(localStorage.getItem('flashcards_pro_data')) || [...defaultCards];
+        // HỆ THỐNG CẤU TRÚC LƯU MỤC HỌC VIÊN
+        let studentsData = JSON.parse(localStorage.getItem('multi_student_vocab_db')) || {
+            activeStudent: "Học Viên Mẫu",
+            students: {
+                "Học Viên Mẫu": [...defaultCards]
+            }
+        };
+
+        let currentStudent = studentsData.activeStudent;
+        let cardsList = studentsData.students[currentStudent] || [];
         let fcIndex = 0;
         let fcIsFlipped = false;
         let filterUnlearnedOnly = false;
-        let editingIdx = -1;
+        let currentTargetImgIndex = -1;
+
+        window.onload = () => {
+            initApp();
+        };
 
         function initApp() {
-            const savedKey = localStorage.getItem("gemini_api_key");
-            if (savedKey) document.getElementById("gemini-api-key").value = savedKey;
-
+            renderStudentSelector();
             saveData();
             updateStats();
             renderFlashcard();
             lucide.createIcons();
         }
 
+        // Cập nhật & lưu dữ liệu theo từng học viên
         function saveData() {
-            localStorage.setItem('flashcards_pro_data', JSON.stringify(cardsList));
+            studentsData.students[currentStudent] = cardsList;
+            studentsData.activeStudent = currentStudent;
+            localStorage.setItem('multi_student_vocab_db', JSON.stringify(studentsData));
             updateStats();
+            renderManageList();
+        }
+
+        // QUẢN LÝ CHUYỂN ĐỔI HỌC VIÊN
+        function renderStudentSelector() {
+            const select = document.getElementById("student-selector");
+            select.innerHTML = "";
+            Object.keys(studentsData.students).forEach(name => {
+                const opt = document.createElement("option");
+                opt.value = name;
+                opt.textContent = name;
+                if (name === currentStudent) opt.selected = true;
+                select.appendChild(opt);
+            });
+            document.getElementById("stat-student-name").textContent = currentStudent;
+        }
+
+        function switchStudent(name) {
+            currentStudent = name;
+            cardsList = studentsData.students[currentStudent] || [];
+            fcIndex = 0;
+            saveData();
+            renderStudentSelector();
+            renderFlashcard();
+        }
+
+        function openAddStudentModal() {
+            document.getElementById("modal-add-student").classList.remove("hidden");
+        }
+
+        function closeAddStudentModal() {
+            document.getElementById("modal-add-student").classList.add("hidden");
+        }
+
+        function handleCreateStudent(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById("new-student-name");
+            const name = nameInput.value.trim();
+            if (!name) return;
+
+            if (!studentsData.students[name]) {
+                studentsData.students[name] = [];
+            }
+            nameInput.value = "";
+            closeAddStudentModal();
+            switchStudent(name);
         }
 
         function updateStats() {
@@ -328,8 +473,8 @@
                 container.innerHTML = `
                     <div class="w-full h-full bg-white rounded-2xl p-8 shadow-xl flex flex-col items-center justify-center text-center border border-slate-200">
                         <i data-lucide="check-circle-2" class="w-16 h-16 text-emerald-500 mb-3"></i>
-                        <h3 class="text-xl font-bold text-slate-800">Tuyệt vời!</h3>
-                        <p class="text-sm text-slate-500">Bạn đã thuộc tất cả từ trong nhóm này.</p>
+                        <h3 class="text-xl font-bold text-slate-800">Bộ từ vựng trống!</h3>
+                        <p class="text-sm text-slate-500">Hãy bấm "Quản lý từ vựng" để thêm từ mới cho học viên <strong class="text-indigo-600">${currentStudent}</strong>.</p>
                     </div>`;
                 document.getElementById("fc-progress-text").textContent = "0 / 0";
                 lucide.createIcons();
@@ -370,6 +515,7 @@
                         </div>
                         <div class="my-auto text-center px-4">
                             <h3 class="text-3xl font-bold text-white mb-2">${card.back}</h3>
+                            ${card.example ? `<p class="text-xs text-indigo-200/80 italic mt-3 bg-indigo-950/40 p-2 rounded-lg border border-indigo-800/50">" ${card.example} "</p>` : ''}
                         </div>
                         <div class="text-center text-xs text-indigo-300/70 flex items-center justify-center gap-1">
                             <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
@@ -554,277 +700,359 @@
             const remaining = document.querySelectorAll(".match-card:not(.matched-card)");
             if (remaining.length === 0) {
                 clearInterval(matchTimerInterval);
-                setTimeout(() => {
-                    alert(`Chúc mừng! Bạn đã hoàn thành trong ${document.getElementById("match-timer").textContent}!`);
-                }, 200);
-            }
-        }
-
-        // --- QUIZ CONTROLLER ---
-        let quizIdx = 0;
-        let quizScoreVal = 0;
-
-        function startQuiz() {
-            quizIdx = 0;
-            quizScoreVal = 0;
-            renderQuiz();
-        }
-
-        function renderQuiz() {
-            if (cardsList.length === 0) {
-                document.getElementById("quiz-content-area").innerHTML = `<p class="text-slate-500">Vui lòng thêm từ vựng để bắt đầu!</p>`;
-                return;
-            }
-            const total = Math.min(cardsList.length, 10);
-            const current = cardsList[quizIdx % cardsList.length];
-
-            document.getElementById("quiz-progress").textContent = `Câu ${quizIdx + 1} / ${total}`;
-            document.getElementById("quiz-score").textContent = `Điểm: ${quizScoreVal}`;
-            document.getElementById("btn-next-quiz").classList.add("hidden");
-            document.getElementById("quiz-feedback").classList.add("hidden");
-
-            const content = document.getElementById("quiz-content-area");
-            content.innerHTML = `
-                <div class="w-32 h-32 mx-auto mb-3 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                    <img src="${current.image || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
-                </div>
-                <h3 class="text-2xl font-bold text-slate-800">${current.front}</h3>
-                <p class="text-xs text-slate-400 italic mt-0.5">${current.sub || ''}</p>
-            `;
-
-            let options = [current.back];
-            let others = cardsList.map(c => c.back).filter(b => b !== current.back).sort(() => Math.random() - 0.5);
-            while (options.length < 4 && others.length > 0) options.push(others.pop());
-            options.sort(() => Math.random() - 0.5);
-
-            const optionsContainer = document.getElementById("quiz-options");
-            optionsContainer.innerHTML = "";
-            options.forEach(opt => {
-                const btn = document.createElement("button");
-                btn.className = "p-3 border-2 border-slate-200 rounded-xl font-semibold text-slate-700 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left";
-                btn.textContent = opt;
-                btn.onclick = () => checkQuiz(opt, current.back, btn);
-                optionsContainer.appendChild(btn);
-            });
-        }
-
-        function checkQuiz(selected, correct, btn) {
-            const btns = document.querySelectorAll("#quiz-options button");
-            btns.forEach(b => b.disabled = true);
-
-            const fb = document.getElementById("quiz-feedback");
-            fb.classList.remove("hidden");
-
-            if (selected === correct) {
-                quizScoreVal++;
-                btn.className = "p-3 border-2 border-emerald-500 bg-emerald-50 text-emerald-800 rounded-xl font-bold text-left";
-                fb.className = "p-3 rounded-xl text-center font-bold text-sm bg-emerald-100 text-emerald-800 block mb-4";
-                fb.textContent = "Chính xác! 🎉";
-            } else {
-                btn.className = "p-3 border-2 border-rose-500 bg-rose-50 text-rose-800 rounded-xl font-bold text-left";
-                fb.className = "p-3 rounded-xl text-center font-bold text-sm bg-rose-100 text-rose-800 block mb-4";
-                fb.textContent = `Sai rồi! Đáp án đúng: ${correct}`;
-            }
-
-            document.getElementById("quiz-score").textContent = `Điểm: ${quizScoreVal}`;
-            document.getElementById("btn-next-quiz").classList.remove("hidden");
-        }
-
-        function nextQuizQuestion() {
-            quizIdx++;
-            renderQuiz();
-        }
-
-        // --- AI GENERATOR MODAL (REAL GEMINI API) ---
-        function openAiGeneratorModal() {
-            document.getElementById("modal-ai-gen").classList.remove("hidden");
-        }
-        function closeAiModal() {
-            document.getElementById("modal-ai-gen").classList.add("hidden");
-        }
-
-        async function runAiExtract() {
-            const apiKey = document.getElementById("gemini-api-key").value.trim();
-            const text = document.getElementById("ai-input-text").value.trim();
-
-            if (!apiKey) return alert("Vui lòng nhập Gemini API Key!");
-            if (!text) return alert("Vui lòng dán đoạn văn bản!");
-
-            localStorage.setItem("gemini_api_key", apiKey);
-            const btn = document.getElementById("btn-run-ai");
-            btn.disabled = true;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Đang xử lý...`;
-            lucide.createIcons();
-
-            const prompt = `Phân tích đoạn văn tiếng Anh sau, trích xuất 5 từ vựng quan trọng nhất.
-    Trả về ĐÚNG MỘT MẢNG JSON (không kèm markdown \`\`\`json) với cấu trúc:
-    [
-      {
-        "front": "Từ tiếng Anh",
-        "back": "Nghĩa tiếng Việt chuẩn",
-        "sub": "/phiên âm IPA/",
-        "type": "(từ loại, ví dụ: (n), (v), (adj))"
-      }
-    ]
-    Đoạn văn: "${text}"`;
-
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
-                });
-
-                const data = await res.json();
-                let rawText = data.candidates[0].content.parts[0].text.trim();
-                rawText = rawText.replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '').trim();
-
-                const words = JSON.parse(rawText);
-
-                words.forEach(w => {
-                    cardsList.push({
-                        front: w.front,
-                        back: w.back,
-                        sub: w.sub || `/${w.front.toLowerCase()}/`,
-                        type: w.type || "(n)",
-                        image: "[https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=400](https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=400)",
-                        learned: false
-                    });
-                });
-
-                saveData();
-                closeAiModal();
-                renderManageList();
-                renderFlashcard();
-                alert(`Đã tạo thành công ${words.length} thẻ từ vựng mới nhờ AI!`);
-
-            } catch (err) {
-                console.error("Lỗi AI:", err);
-                alert("Không thể phân tích bằng AI! Kiểm tra lại API Key hoặc kết nối mạng.");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<i data-lucide="cpu" class="w-4 h-4"></i> Phân Tích & Phân Loại Bằng AI`;
+                const mins = String(Math.floor(matchSeconds / 60)).padStart(2, '0');
+                const secs = String(matchSeconds % 60).padStart(2, '0');
+                
+                document.getElementById("match-grid").innerHTML = `
+                    <div class="col-span-2 sm:col-span-4 bg-white rounded-2xl p-8 text-center border border-slate-200 shadow-lg">
+                        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="trophy" class="w-8 h-8"></i>
+                        </div>
+                        <h3 class="text-2xl font-extrabold text-slate-800 mb-1">Chúc mừng bạn đã hoàn thành!</h3>
+                        <p class="text-sm text-slate-500 mb-4">Thời gian hoàn thành: <strong class="text-indigo-600 font-mono">${mins}:${secs}</strong> | Lỗi: <strong class="text-rose-600">${matchErrors}</strong></p>
+                        <button onclick="startMatchGame()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all">
+                            Chơi lại lượt mới
+                        </button>
+                    </div>`;
                 lucide.createIcons();
             }
         }
 
-        // --- MANAGE MODAL & EDIT LOGIC ---
-        function openManageModal() {
-            editingIdx = -1;
-            renderManageList();
-            document.getElementById("modal-manage").classList.remove("hidden");
+        // --- QUIZ CONTROLLER (ĐỤC LỖ TỪ VỰNG TIẾNG ANH TRONG CÂU VÍ DỤ + 4 ĐÁP ÁN) ---
+        let quizIndex = 0;
+        let quizScore = 0;
+
+        function startQuiz() {
+            quizIndex = 0;
+            quizScore = 0;
+            renderQuizQuestion();
         }
+
+        function renderQuizQuestion() {
+            if (cardsList.length === 0) return;
+            const card = cardsList[quizIndex % cardsList.length];
+
+            document.getElementById("quiz-progress").textContent = `Câu ${quizIndex + 1} / ${cardsList.length}`;
+            document.getElementById("quiz-score").textContent = `Điểm: ${quizScore}`;
+            document.getElementById("btn-next-quiz").classList.add("hidden");
+
+            const feedback = document.getElementById("quiz-feedback");
+            feedback.className = "p-3 rounded-xl text-center font-bold text-sm hidden mb-4";
+
+            // Chuẩn bị câu ví dụ
+            let rawSentence = card.example;
+            if (!rawSentence || rawSentence.trim() === "") {
+                rawSentence = `This ______ is very nice.`;
+            }
+
+            // Tìm và đục lỗ từ vựng tiếng Anh chính xác (Ví dụ: "house" -> "______")
+            const wordRegex = new RegExp(`\\b${card.front}\\b`, "gi");
+            let blankSentence = rawSentence;
+            
+            if (wordRegex.test(rawSentence)) {
+                blankSentence = rawSentence.replace(wordRegex, '<span class="inline-block border-b-2 border-indigo-600 px-2 font-extrabold text-indigo-600">______</span>');
+            } else {
+                blankSentence = rawSentence.replace(new RegExp(card.front, "gi"), '<span class="inline-block border-b-2 border-indigo-600 px-2 font-extrabold text-indigo-600">______</span>');
+            }
+
+            const questionHtml = `
+                <div class="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 mb-4 text-center">
+                    <span class="text-[10px] uppercase font-bold text-indigo-600 tracking-wider bg-white px-2.5 py-1 rounded-md border border-indigo-200">Chọn từ đúng điền vào chỗ trống</span>
+                    <p class="text-xl font-semibold text-slate-800 mt-3 mb-2 leading-relaxed font-serif">"${blankSentence}"</p>
+                    <p class="text-xs text-slate-500">Nghĩa tiếng Việt: <strong class="text-slate-700 font-bold">${card.back}</strong></p>
+                </div>
+            `;
+
+            document.getElementById("quiz-content-area").innerHTML = questionHtml;
+
+            // Tạo 4 đáp án (1 đáp án đúng + 3 từ nhiễu)
+            let options = [card.front];
+            let otherCards = cardsList.filter(c => c.front.toLowerCase() !== card.front.toLowerCase());
+            otherCards.sort(() => Math.random() - 0.5);
+
+            for (let i = 0; i < Math.min(3, otherCards.length); i++) {
+                options.push(otherCards[i].front);
+            }
+
+            // Nếu số lượng từ trong bộ thẻ < 4, tự động thêm các từ giả lập để đủ 4 đáp án
+            const fillerWords = ["building", "garden", "school", "park", "car", "street"];
+            let fillerIdx = 0;
+            while (options.length < 4 && fillerIdx < fillerWords.length) {
+                if (!options.includes(fillerWords[fillerIdx])) {
+                    options.push(fillerWords[fillerIdx]);
+                }
+                fillerIdx++;
+            }
+
+            // Đảo ngẫu nhiên vị trí các đáp án
+            options.sort(() => Math.random() - 0.5);
+
+            const optionsContainer = document.getElementById("quiz-options");
+            optionsContainer.innerHTML = "";
+
+            options.forEach(opt => {
+                const btn = document.createElement("button");
+                btn.className = "quiz-opt-btn w-full p-3.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-500 rounded-xl font-bold text-slate-700 text-base transition-all shadow-sm";
+                btn.textContent = opt;
+                btn.onclick = () => answerQuiz(btn, opt, card.front);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function answerQuiz(btnElement, selected, correct) {
+            const feedback = document.getElementById("quiz-feedback");
+            feedback.classList.remove("hidden");
+
+            const allBtns = document.querySelectorAll(".quiz-opt-btn");
+            allBtns.forEach(b => {
+                b.disabled = true;
+                if (b.textContent.toLowerCase() === correct.toLowerCase()) {
+                    b.classList.add("bg-emerald-100", "border-emerald-500", "text-emerald-800");
+                }
+            });
+
+            if (selected.toLowerCase() === correct.toLowerCase()) {
+                quizScore += 10;
+                feedback.className = "p-3 rounded-xl text-center font-bold text-sm bg-emerald-100 text-emerald-800 mb-4 block";
+                feedback.textContent = "Chính xác! 🎉 (+10 điểm)";
+            } else {
+                btnElement.classList.add("bg-rose-100", "border-rose-500", "text-rose-800");
+                feedback.className = "p-3 rounded-xl text-center font-bold text-sm bg-rose-100 text-rose-800 mb-4 block";
+                feedback.textContent = `Chưa đúng! Đáp án đúng là: "${correct}"`;
+            }
+
+            document.getElementById("quiz-score").textContent = `Điểm: ${quizScore}`;
+            document.getElementById("btn-next-quiz").classList.remove("hidden");
+        }
+
+        function nextQuizQuestion() {
+            quizIndex++;
+            renderQuizQuestion();
+        }
+
+        // --- MANAGE & AUTOMATIC PIXABAY / BULK IMPORT CONTROLLER ---
+        function openManageModal() {
+            document.getElementById("manage-student-title").textContent = currentStudent;
+            document.getElementById("modal-manage").classList.remove("hidden");
+            renderManageList();
+        }
+
         function closeManageModal() {
-            editingIdx = -1;
             document.getElementById("modal-manage").classList.add("hidden");
         }
 
-        function handleAddSingle(e) {
+        function toggleAddMode(mode) {
+            const formSingle = document.getElementById("form-add-single");
+            const formBulk = document.getElementById("form-add-bulk");
+            const btnSingle = document.getElementById("btn-tab-single");
+            const btnBulk = document.getElementById("btn-tab-bulk");
+
+            if (mode === 'single') {
+                formSingle.classList.remove("hidden");
+                formBulk.classList.add("hidden");
+                btnSingle.className = "pb-2 border-b-2 border-indigo-600 text-indigo-600";
+                btnBulk.className = "pb-2 border-b-2 border-transparent text-slate-500 hover:text-indigo-600";
+            } else {
+                formSingle.classList.add("hidden");
+                formBulk.classList.remove("hidden");
+                btnBulk.className = "pb-2 border-b-2 border-emerald-600 text-emerald-600";
+                btnSingle.className = "pb-2 border-b-2 border-transparent text-slate-500 hover:text-indigo-600";
+            }
+        }
+
+        async function fetchAutoPixabayImage(keyword) {
+            try {
+                const res = await fetch(`https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(keyword)}&image_type=photo&per_page=3`);
+                const data = await res.json();
+                if (data.hits && data.hits.length > 0) {
+                    return data.hits[0].webformatURL;
+                }
+            } catch (err) {
+                console.error("Lỗi tự động lấy ảnh Pixabay:", err);
+            }
+            return "https://images.unsplash.com/photo-1501139083538-0139583c060f?w=400";
+        }
+
+        async function handleAddSingle(e) {
             e.preventDefault();
             const front = document.getElementById("add-front").value.trim();
             const back = document.getElementById("add-back").value.trim();
             const sub = document.getElementById("add-sub").value.trim();
             const type = document.getElementById("add-type").value.trim();
+            const example = document.getElementById("add-example").value.trim();
+            const customUrl = document.getElementById("add-custom-url").value.trim();
 
             if (!front || !back) return;
+
+            let finalImage = customUrl;
+            if (!finalImage) {
+                finalImage = await fetchAutoPixabayImage(front);
+            }
 
             cardsList.push({
                 front,
                 back,
-                sub: sub || `/${front.toLowerCase()}/`,
+                sub,
                 type: type || "(n)",
-                image: "[https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400](https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400)",
+                example,
+                image: finalImage,
                 learned: false
             });
 
             saveData();
-            renderManageList();
+            document.getElementById("form-add-single").reset();
             renderFlashcard();
-            e.target.reset();
+        }
+
+        // TÍNH NĂNG THÊM HÀNG LOẠT (BULK IMPORT)
+        async function handleBulkImport(e) {
+            e.preventDefault();
+            const rawText = document.getElementById("bulk-input").value.trim();
+            if (!rawText) return;
+
+            const btnSubmit = document.getElementById("btn-submit-bulk");
+            const originalBtnHtml = btnSubmit.innerHTML;
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> <span>Đang xử lý & Tìm ảnh tự động...</span>`;
+            lucide.createIcons();
+
+            const lines = rawText.split('\n');
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+
+                let parts = line.split('|');
+                if (parts.length < 2) parts = line.split('\t');
+                if (parts.length < 2) parts = line.split(',');
+
+                const front = parts[0] ? parts[0].trim() : '';
+                const sub = parts[1] ? parts[1].trim() : '';
+                const back = parts[2] ? parts[2].trim() : (parts[1] ? parts[1].trim() : '');
+                const example = parts[3] ? parts[3].trim() : '';
+
+                if (front && back) {
+                    const image = await fetchAutoPixabayImage(front);
+                    cardsList.push({
+                        front,
+                        sub,
+                        back,
+                        example,
+                        type: "(n)",
+                        image,
+                        learned: false
+                    });
+                }
+            }
+
+            saveData();
+            document.getElementById("bulk-input").value = "";
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = originalBtnHtml;
+            lucide.createIcons();
+            
+            renderFlashcard();
+            alert(`Đã thêm thành công các từ vựng mới vào bộ thẻ của ${currentStudent}!`);
         }
 
         function renderManageList() {
-            const list = document.getElementById("manage-list");
-            list.innerHTML = "";
-            cardsList.forEach((c, idx) => {
+            const container = document.getElementById("manage-list");
+            container.innerHTML = "";
+
+            cardsList.forEach((card, idx) => {
                 const item = document.createElement("div");
-
-                if (editingIdx === idx) {
-                    item.className = "p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-xs space-y-2";
-                    item.innerHTML = `
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" id="edit-front-${idx}" value="${c.front}" class="p-2 border border-slate-300 rounded bg-white font-bold text-slate-800">
-                            <input type="text" id="edit-back-${idx}" value="${c.back}" class="p-2 border border-slate-300 rounded bg-white text-indigo-600 font-medium">
-                            <input type="text" id="edit-sub-${idx}" value="${c.sub || ''}" placeholder="Phiên âm" class="p-2 border border-slate-300 rounded bg-white text-slate-500">
-                            <input type="text" id="edit-type-${idx}" value="${c.type || ''}" placeholder="Từ loại" class="p-2 border border-slate-300 rounded bg-white text-slate-500">
-                        </div>
-                        <div class="flex justify-end gap-2 pt-1">
-                            <button onclick="cancelEdit()" class="px-2.5 py-1 text-slate-600 bg-slate-200 hover:bg-slate-300 rounded font-semibold transition-colors">Hủy</button>
-                            <button onclick="saveEdit(${idx})" class="px-2.5 py-1 text-white bg-indigo-600 hover:bg-indigo-700 rounded font-semibold transition-colors">Lưu</button>
-                        </div>
-                    `;
-                } else {
-                    item.className = "flex justify-between items-center p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs";
-                    item.innerHTML = `
+                item.className = "flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs";
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <img src="${card.image}" class="w-10 h-10 object-cover rounded-lg border border-slate-200">
                         <div>
-                            <strong class="text-slate-800">${c.front}</strong> 
-                            <span class="text-slate-400">${c.sub || ''}</span>
-                            <span class="text-slate-400 italic">${c.type || ''}</span>
-                            <p class="text-indigo-600 font-medium">${c.back}</p>
+                            <p class="font-bold text-slate-800">${card.front} <span class="font-normal text-slate-400">${card.sub || ''}</span></p>
+                            <p class="text-slate-500">${card.back}</p>
+                            ${card.example ? `<p class="text-[10px] text-slate-400 italic">VD: ${card.example}</p>` : ''}
                         </div>
-                        <div class="flex items-center gap-1">
-                            <button onclick="startEdit(${idx})" class="text-indigo-600 hover:text-indigo-800 font-bold px-2 py-1 hover:bg-indigo-50 rounded transition-colors">Sửa</button>
-                            <button onclick="deleteCard(${idx})" class="text-rose-600 hover:text-rose-800 font-bold px-2 py-1 hover:bg-rose-50 rounded transition-colors">Xóa</button>
-                        </div>
-                    `;
-                }
-                list.appendChild(item);
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openImagePickerForCard(${idx})" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold rounded-lg transition-all flex items-center gap-1">
+                            <i data-lucide="image" class="w-3.5 h-3.5"></i> Đổi ảnh
+                        </button>
+                        <button onclick="deleteCard(${idx})" class="p-1 text-rose-500 hover:bg-rose-50 rounded-lg">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
             });
-        }
-
-        function startEdit(idx) {
-            editingIdx = idx;
-            renderManageList();
-        }
-
-        function cancelEdit() {
-            editingIdx = -1;
-            renderManageList();
-        }
-
-        function saveEdit(idx) {
-            const front = document.getElementById(`edit-front-${idx}`).value.trim();
-            const back = document.getElementById(`edit-back-${idx}`).value.trim();
-            const sub = document.getElementById(`edit-sub-${idx}`).value.trim();
-            const type = document.getElementById(`edit-type-${idx}`).value.trim();
-
-            if (!front || !back) {
-                alert("Từ tiếng Anh và nghĩa Tiếng Việt không được để trống!");
-                return;
-            }
-
-            cardsList[idx].front = front;
-            cardsList[idx].back = back;
-            cardsList[idx].sub = sub;
-            cardsList[idx].type = type;
-
-            editingIdx = -1;
-            saveData();
-            renderManageList();
-            renderFlashcard();
+            lucide.createIcons();
         }
 
         function deleteCard(idx) {
             cardsList.splice(idx, 1);
-            if (editingIdx === idx) editingIdx = -1;
             saveData();
-            renderManageList();
             renderFlashcard();
         }
 
-        window.onload = initApp;
+        // --- PIXABAY & CUSTOM URL IMAGE PICKER ---
+        function openImagePickerForCard(idx) {
+            currentTargetImgIndex = idx;
+            const card = cardsList[idx];
+            document.getElementById("picker-word-title").textContent = card.front;
+            document.getElementById("img-search-query").value = card.front;
+            document.getElementById("picker-direct-url").value = "";
+            document.getElementById("modal-image-picker").classList.remove("hidden");
+            executePixabaySearch();
+        }
+
+        function closeImagePickerModal() {
+            document.getElementById("modal-image-picker").classList.add("hidden");
+        }
+
+        function applyDirectImageUrl() {
+            const url = document.getElementById("picker-direct-url").value.trim();
+            if (url) {
+                selectImageForCard(url);
+            }
+        }
+
+        async function executePixabaySearch() {
+            const query = document.getElementById("img-search-query").value.trim();
+            const grid = document.getElementById("image-search-grid");
+            const loading = document.getElementById("image-search-loading");
+
+            if (!query) return;
+
+            grid.innerHTML = "";
+            loading.classList.remove("hidden");
+
+            try {
+                const res = await fetch(`https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&per_page=12`);
+                const data = await res.json();
+
+                loading.classList.add("hidden");
+
+                if (data.hits && data.hits.length > 0) {
+                    data.hits.forEach(img => {
+                        const imgElem = document.createElement("div");
+                        imgElem.className = "aspect-square rounded-xl overflow-hidden border-2 border-slate-200 hover:border-indigo-600 cursor-pointer transition-all shadow-sm group relative";
+                        imgElem.innerHTML = `<img src="${img.webformatURL}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">`;
+                        imgElem.onclick = () => selectImageForCard(img.webformatURL);
+                        grid.appendChild(imgElem);
+                    });
+                } else {
+                    grid.innerHTML = `<p class="col-span-4 text-center text-slate-400 py-8 text-xs">Không tìm thấy ảnh trên Pixabay! Hãy dán URL ảnh ở trên.</p>`;
+                }
+            } catch (err) {
+                loading.classList.add("hidden");
+                grid.innerHTML = `<p class="col-span-4 text-center text-rose-500 py-8 text-xs">Có lỗi kết nối tới API Pixabay!</p>`;
+            }
+        }
+
+        function selectImageForCard(url) {
+            if (currentTargetImgIndex >= 0 && currentTargetImgIndex < cardsList.length) {
+                cardsList[currentTargetImgIndex].image = url;
+                saveData();
+                renderFlashcard();
+                closeImagePickerModal();
+            }
+        }
     </script>
 </body>
 </html>
