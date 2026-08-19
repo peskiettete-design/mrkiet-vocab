@@ -298,7 +298,7 @@
         </div>
     </div>
 
-    <!-- MODAL BỘ CHỌN ẢNH PIXABAY -->
+    <!-- MODAL BỘ CHỌN ẢNH PIXABAY & GOOGLE SEARCH -->
     <div id="modal-image-picker" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
             <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
@@ -311,11 +311,18 @@
                 </button>
             </div>
 
-            <div class="p-4 border-b border-slate-200 bg-amber-50/50 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div class="flex-1 w-full">
-                    <label class="block text-xs font-bold text-amber-900 mb-1">Dán liên kết (URL) ảnh tùy chọn:</label>
+            <!-- KHU VỰC DÁN LINK & NÚT MỞ NHANH GOOGLE HÌNH ẢNH -->
+            <div class="p-4 border-b border-slate-200 bg-amber-50/50 flex flex-col gap-3">
+                <div class="w-full">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-bold text-amber-900">Dán liên kết (URL) ảnh tùy chọn:</label>
+                        <a id="btn-open-google-img" href="#" target="_blank" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-indigo-200 shadow-sm transition-all">
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                            <span>Mở Google Hình Ảnh để copy link</span>
+                        </a>
+                    </div>
                     <div class="flex items-center gap-2">
-                        <input type="url" id="picker-direct-url" placeholder="https://example.com/image.jpg" class="flex-1 px-3 py-2 text-sm border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                        <input type="url" id="picker-direct-url" placeholder="Nhấp chuột phải vào ảnh trên Google -> Sao chép địa chỉ hình ảnh -> Dán vào đây" class="flex-1 px-3 py-2 text-sm border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                         <button onclick="applyDirectImageUrl()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shrink-0">
                             <i data-lucide="link" class="w-4 h-4"></i>
                             <span>Lưu URL</span>
@@ -323,8 +330,9 @@
                     </div>
                 </div>
                 
-                <div class="w-full sm:w-auto flex sm:flex-col justify-end pt-1 sm:pt-4">
-                    <button onclick="removeCurrentImage()" class="w-full bg-rose-100 hover:bg-rose-200 text-rose-700 border border-rose-300 px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 shrink-0">
+                <div class="flex justify-between items-center">
+                    <span class="text-[11px] text-amber-800 italic">Mẹo: Chuột phải vào ảnh bất kỳ trên Google chọn <b>"Copy image address"</b> rồi dán vào ô trên.</span>
+                    <button onclick="removeCurrentImage()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 border border-rose-300 px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                         <span>Xóa ảnh hiện tại</span>
                     </button>
@@ -1073,16 +1081,21 @@
             }
         }
 
-        // MODAL CHỌN ẢNH PIXABAY ĐÃ ĐƯỢC TỐI ƯU HÓA KHÔNG LỖI
+        // MODAL CHỌN ẢNH PIXABAY & GOOGLE LINK
         function openImagePickerModal(index) {
             currentTargetImgIndex = index;
             const card = cardsList[index];
             document.getElementById("picker-word-title").textContent = card.front;
             document.getElementById("picker-direct-url").value = "";
             document.getElementById("img-search-query").value = card.front;
+            
+            // CẬP NHẬT LINK GOOGLE HÌNH ẢNH THEO TỪ KHÓA HIỆN TẠI
+            const googleImgUrl = `https://www.google.com/search?q=${encodeURIComponent(card.front)}&tbm=isch`;
+            document.getElementById("btn-open-google-img").href = googleImgUrl;
+
             document.getElementById("modal-image-picker").classList.remove("hidden");
             
-            // Tự động kích hoạt tìm kiếm luôn khi mở bảng chọn ảnh
+            // Tự động tìm kiếm luôn trên Pixabay
             executePixabaySearch();
         }
 
@@ -1094,7 +1107,7 @@
         function executePixabaySearch() {
             let queryInput = document.getElementById("img-search-query").value.trim();
             
-            // Xử lý làm sạch từ khóa: loại bỏ dấu gạch chéo hoặc lấy từ đầu tiên nếu cụm từ dài để API Pixabay không bị lỗi 400/trống kết quả
+            // Làm sạch từ khóa để API Pixabay không bị lỗi 400 hoặc trả về mảng rỗng
             if (queryInput.includes("/")) {
                 queryInput = queryInput.split("/")[0].trim();
             }
@@ -1128,7 +1141,7 @@
                                 <img src="${item.webformatURL}" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-300">
                             </div>
                         `;
-                        // Sử dụng trường webformatURL chuẩn từ CDN Pixabay để không bị lỗi token hay hết hạn
+                        // Sử dụng webformatURL chuẩn từ CDN Pixabay để không bao giờ bị hết hạn token
                         cardDiv.onclick = () => selectPixabayImage(item.webformatURL);
                         grid.appendChild(cardDiv);
                     });
